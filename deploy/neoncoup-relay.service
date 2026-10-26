@@ -1,0 +1,35 @@
+# systemd unit for the NEON//COUP relay.
+#
+#   sudo install -m 0755 neoncoup /usr/local/bin/neoncoup
+#   sudo cp deploy/neoncoup-relay.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now neoncoup-relay
+#   journalctl -u neoncoup-relay -f
+#
+# Put it behind a TLS proxy (see deploy/Caddyfile) so players can use wss://.
+[Unit]
+Description=NEON//COUP relay
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/neoncoup relay --addr 127.0.0.1:8080
+Restart=on-failure
+RestartSec=2
+DynamicUser=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

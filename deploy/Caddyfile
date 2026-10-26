@@ -1,0 +1,4 @@
+# TLS in front of the relay. Hosts then use: neoncoup host --relay wss://relay.example.com
+relay.example.com {
+	reverse_proxy 127.0.0.1:8080
+}

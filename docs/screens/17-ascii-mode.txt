@@ -1,0 +1,40 @@
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 3                                               ~x no audio  ? help  q leave
+        +--------------------------------++--------------------------------+        +----------------------------------+
+        | . GHOSTWIRE               HARD || . NULLBYTE                EASY |        | NETLOG                           |
+        | c2                          oo || c2                          oo |        | // GAME 3 // 5 RUNNERS //        |
+        | no cards exposed               || no cards exposed               |        |   JACKED IN                      |
+        | thinking...                    || thinking...                    |        | -- TURN 1 . VEX --               |
+        +--------------------------------++--------------------------------+        | > [VEX] SKIMS A CREDIT //        |
+                        +----------------------------------+                        |   INCOME +1c                     |
+                        | TREASURY 36c . DECK 5 . TURN 3   |                        | -- TURN 2 . YOU --               |
+                        | -------------------------------- |                        | > [YOU] BROADCASTS DUKE SIGNAL   |
+                        | > MOTH -> STEAL YOU (claims      |                        |   // TAX +3c                     |
+                        | CAPTAIN)                         |                        | +3c > [YOU]                      |
++----------------------+|                                  |+----------------------+| -- TURN 3 . MOTH --              |
+| > MOTH        NORMAL || CHALLENGE WINDOW OPEN            || . VEX           HARD || > [MOTH] FLASHES A CAPTAIN       |
+| c2                oo || ################........  5.2s   || c3                oo ||   BADGE AT [YOU] // STEAL 2c     |
+| no cards exposed     || waiting on: VEX, YOU, GHOSTWIRE, || no cards exposed     ||                                  |
+| claims CAPTAIN       || NULLBYTE                         || thinking...          ||                                  |
+|                      ||                                  ||                      ||                                  |
+|                      || COURT INTEL // face-up cards     ||                      ||                                  |
++----------------------+| DUKE    0/3+1  ASSASN  0/3       |+----------------------+|                                  |
+                        | CAPTAIN 0/3+1  AMBSDR  0/3       |                        |                                  |
+                        | CONTSA  0/3                      |                        |                                  |
+                        | (+n = in your hand)              |                        |                                  |
+                        |                                  |                        |                                  |
+                        |                                  |                        |                                  |
+                        +----------------------------------+                        |                                  |
++----------------++----------------+  RUNNER  seat 2                                |                                  |
+| DUKE          *|| CAPTAIN       ^|  c 5                                           |                                  |
+|     ______     ||===__   ______  |  influence oo                                  +----------------------------------+
+|   _#""""""#_   ||  ]##[ #""""""# |                                                +----------------------------------+
+|   #  __ (@)#=+ ||   "#_]%%%%%%%[ |  you hold                                      |                                  |
+|   #   __   # | ||     "#_______# |  DUKE + CAPTAIN                                | enter: chat . t: taunt           |
+|   "#_===__#" | ||  _%%%#%%%%%%%#_|                                                |                                  |
+|  _%%%#[c]#%%%_ ||  #%%%#%%||%%%##|                                                |                                  |
+|----------------||----------------|                                                |                                  |
+| TAX +3c        || STEAL 2c       |                                                |                                  |
+| BLOCKS FOR.AID || BLOCKS STEAL   |                                                |                                  |
++----------------++----------------+                                                +----------------------------------+
+ MOTH claims CAPTAIN for STEAL. call the bluff?
+ [c]CHALLENGE  [p]PASS  [t]TAUNT  [?]HELP

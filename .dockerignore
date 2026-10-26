@@ -1,0 +1,4 @@
+neoncoup
+dist/
+*.test
+.git

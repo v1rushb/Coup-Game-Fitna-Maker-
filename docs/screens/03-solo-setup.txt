@@ -1,0 +1,22 @@
+
+
+
+
+
+
+
+              ╭──────────────────────────────────────────────────────────────────────╮
+              │                                                                      │
+              │   SOLO RUN                                                           │
+              │   a private grid, you against the machine                            │
+              │                                                                      │
+              │   ▶ Bots            ◀ 3 ▶                                            │
+              │     Difficulty      ◀ FIXER (normal) ▶                               │
+              │     Magistrate      ◀ OFF ▶                                          │
+              │     Reaction window ◀ 8s ▶                                           │
+              │                                                                      │
+              │   1 to 5 opponents. Magistrate is recommended for 5+ players.        │
+              │                                                                      │
+              │   ↑↓ field · ←→ change · enter to jack in · esc back                 │
+              │                                                                      │
+              ╰──────────────────────────────────────────────────────────────────────╯

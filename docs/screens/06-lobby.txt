@@ -1,0 +1,30 @@
+      LOBBY     NEON-7K2Q
+      same network: neoncoup join NEON-7K2Q
+      direct:       neoncoup join 192.168.1.20:7777
+      internet:     neoncoup join NEON-7K2Q --relay wss://relay.example.com
+
+      ╭────────────────────────────────────────────╮  ╭──────────────────────────────────────╮
+      │ RUNNERS                                    │  │ TABLE RULES                          │
+      │                                            │  │                                      │
+      │ ● RUNNER             READY [HOST] (you)    │  │ seats        4                       │
+      │ ● TRINITY            READY                 │  │ bot fill     ON (normal)             │
+      │ ● CASE               NOT READY             │  │ window       8s                      │
+      │ ○ bot #1             FIXER (NORMAL)        │  │ turn timer   60s                     │
+      │                                            │  │ magistrate   OFF                     │
+      │ 1 spectator(s) watching                    │  │ seat hold    60s                     │
+      ╰────────────────────────────────────────────╯  ╰──────────────────────────────────────╯
+
+      ╭──────────────────────────────────────────────────────────────────────────────────────╮
+      │ // TRINITY jacked in                                                                 │
+      │ TRINITY: ready when you are                                                          │
+      │ // MOLLY is watching                                                                 │
+      │ tab to chat                                                                          │
+      │                                                                                      │
+      │                                                                                      │
+      │                                                                                      │
+      │                                                                                      │
+      │                                                                                      │
+      ╰──────────────────────────────────────────────────────────────────────────────────────╯
+
+      enter START · +/- seats · f bot fill · d difficulty
+      w window · t turn timer · g magistrate · tab chat · q leave

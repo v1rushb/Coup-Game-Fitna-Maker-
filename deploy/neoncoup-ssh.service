@@ -1,0 +1,19 @@
+# systemd unit for `neoncoup serve-ssh` (players join with ssh -p 2222 HOST).
+[Unit]
+Description=NEON//COUP over SSH
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/neoncoup serve-ssh --addr :2222 --http :7777
+Environment=NEONCOUP_HOME=/var/lib/neoncoup
+StateDirectory=neoncoup
+Restart=on-failure
+DynamicUser=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

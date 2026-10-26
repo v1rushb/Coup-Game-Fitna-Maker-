@@ -1,0 +1,24 @@
+
+
+
+
+
+                       █▄  █ █▀▀▀ ▄▀▀▄ █▄  █    ▄▀    ▄▀ ▄▀▀▀ ▄▀▀▄ █  █ █▀▀▄
+                       █▀▄ █ █▄▄  █  █ █▀▄ █   ▄▀    ▄▀  █    █  █ █  █ █▄▄▀
+                       █ ▀▄█ █    █  █ █ ▀▄█  ▄▀    ▄▀   █    █  █ █  █ █
+                       ▀   ▀ ▀▀▀▀  ▀▀  ▀   ▀ ▀     ▀      ▀▀▀  ▀▀   ▀▀  ▀
+
+                             a bluffing game for the terminal // v1.0.0
+
+
+                  ▶ 1  SOLO RUN     you vs bots, right now
+                    2  HOST ROOM    open a room for LAN or internet friends
+                    3  JOIN ROOM    room code (NEON-XXXX) or host:port
+                    4  TUTORIAL     a scripted run that teaches the con
+                    5  REPLAYS      step through saved games
+                    6  STATS        your record: wins, bluffs, challenges
+                    7  SETTINGS     name, audio, CRT, ASCII
+                    8  QUIT         jack out
+
+
+                runner: RUNNER   ↑↓ select · enter go · ? help · m mute ♪✖ no audio

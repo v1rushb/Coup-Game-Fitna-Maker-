@@ -1,0 +1,25 @@
+
+
+
+
+
+              ╭──────────────────────────────────────────────────────────────────────╮
+              │                                                                      │
+              │   HOST ROOM                                                          │
+              │   you run the table; friends join with a room code                   │
+              │                                                                      │
+              │   ▶ Seats           ◀ 4 ▶                                            │
+              │     Fill with bots  ◀ ON ▶                                           │
+              │     Bot difficulty  ◀ FIXER (normal) ▶                               │
+              │     Reaction window ◀ 8s ▶                                           │
+              │     Turn timer      ◀ 60s ▶                                          │
+              │     Magistrate      ◀ OFF ▶                                          │
+              │     Seat hold       ◀ 60s ▶                                          │
+              │     Port            7777                                             │
+              │     Relay           none (LAN + direct only)                         │
+              │                                                                      │
+              │   Total seats at the table, humans and bots.                         │
+              │                                                                      │
+              │   ↑↓ field · ←→ change · enter to open the room · esc back           │
+              │                                                                      │
+              ╰──────────────────────────────────────────────────────────────────────╯

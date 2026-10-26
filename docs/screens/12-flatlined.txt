@@ -1,0 +1,40 @@
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 13                                              ♪✖ no audio  ? help  q leave
+        ╭────────────────────────────────╮╭────────────────────────────────╮        ╭──────────────────────────────────╮
+        │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │        │ NETLOG                           │
+        │ ¢4                          ●● ││ ¢4                          ●● │        │ ── TURN 5 · NULLBYTE ──          │
+        │ no cards exposed               ││ no cards exposed               │        │ > [NULLBYTE] SKIMS A CREDIT //   │
+        │                                ││                                │        │   INCOME +1¢                     │
+        ╰────────────────────────────────╯╰────────────────────────────────╯        │ ── TURN 6 · VEX ──               │
+                        ╔══════════════════════════════════╗                        │ > [VEX] SKIMS A CREDIT //        │
+                        ║ TREASURY 28¢ · DECK 5 · TURN 13  ║                        │   INCOME +1¢                     │
+                        ║ ──────────────────────────────── ║                        │ ── TURN 7 · YOU ──               │
+                        ║ > MOTH is choosing a move        ║                        │ > [YOU] SKIMS A CREDIT //        │
+                        ║                                  ║                        │   INCOME +1¢                     │
+╭──────────────────────╮║ waiting on: MOTH                 ║╭──────────────────────╮│ ── TURN 8 · MOTH ──              │
+│ ⠋ MOTH        NORMAL │║                                  ║│   VEX           HARD ││ > [MOTH] SKIMS A CREDIT //       │
+│ ¢4                ●● │║ COURT INTEL // face-up cards     ║│ ¢5                ●● ││   INCOME +1¢                     │
+│ no cards exposed     │║ DUKE    0/3+1  ASSASN  0/3       ║│ no cards exposed     ││ ── TURN 9 · GHOSTWIRE ──         │
+│ thinking...          │║ CAPTAIN 0/3+1  AMBSDR  0/3       ║│                      ││ > [GHOSTWIRE] SKIMS A CREDIT     │
+│                      │║ CONTSA  0/3                      ║│                      ││   // INCOME +1¢                  │
+│                      │║ (+n = in your hand)                                      ││ ── TURN 10 · NULLBYTE ──         │
+╰──────────────────────╯║                          F L A T L I * E $      ─────────╯│ > [NULLBYTE] SKIMS A CREDIT //   │
+                        ║                                                           │   INCOME +1¢                     │
+                        ║                                  ║                        │ ── TURN 11 · VEX ──              │
+                        ║                                  ║                        │ > [VEX] SKIMS A CREDIT //        │
+                        ║                                  ║                        │   INCOME +1¢                     │
+                        ║                                  ║                        │ ── TURN 12 · YOU ──              │
+                        ╚══════════════════════════════════╝                        │ > [YOU] SKIMS A CREDIT //        │
+╔════════════════╗╔════════════════╗  RUNNER  seat 2                                │   INCOME +1¢                     │
+║ DUKE          ◆║║ CAPTAIN       ▲║  ¢ 5                                           │ ── TURN 13 · MOTH ──             │
+║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                                  ╰──────────────────────────────────╯
+ ║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║                                                ╭──────────────────────────────────
+║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║  you hold                                      │                                  │
+║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  DUKE + CAPTAIN                                │ enter: chat · t: taunt           │
+   ║   ▀█▄═══▄▄█▀ ║ ║║  ▄▓▓▓█▓▓▓▓▓▓▓█▄║                                                │
+║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  █▓▓▓█▓▓┃┃▓▓▓██║                                                │                                  │
+║────────────────║║────────────────║                                                │                                  │
+   ║ TAX +3¢        ║║ STEAL 2¢       ║                                                │
+║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                                │                                  │
+╚════════════════╝╚════════════════╝                                                ╰──────────────────────────────────╯
+ waiting on MOTH ⠋
+ [t]TAUNT  [?]HELP

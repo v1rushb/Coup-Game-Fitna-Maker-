@@ -1,0 +1,38 @@
+ REPLAY  2087-01-01 02:00  step 48/72  turn 10                                                      paused
+TREASURY 27¢ · DECK 5                                                         ╭────────────────────────────────────────╮
+> VEX: passes                                                                 │ NETLOG                                 │
+  on the table: NULLBYTE → TAX (claims DUKE)                                  │   +3¢ → [RUNNER]                       │
+                                                                              │ ── TURN 3 · MOTH ──                    │
+VEX               ┌──────────┐┌──────────┐                                    │ > [MOTH] BROADCASTS DUKE SIGNAL // TA… │
+¢0                │ ASSASSIN╳││ CONTESSA✧│                                    │   +3¢ → [MOTH]                         │
+                  │  ▄█▓▓█▄ ╱││   ▐◆  ◆▌ │                                    │ ── TURN 4 · GHOSTWIRE ──               │
+                  │  █ ════▐▌││ ▐░▒▓░▒▓░▌│                                    │ > [GHOSTWIRE] FLASHES A CAPTAIN BADGE… │
+                  │KILL 3¢   ││BLK KILL  │                                    │ ! [RUNNER] CALLS [GHOSTWIRE]'S CAPTAI… │
+                  │-1 INFL   ││          │                                    │   [GHOSTWIRE] SHOWS CAPTAIN // CLAIM … │
+                  └──────────┘└──────────┘                                    │   [GHOSTWIRE] RESHUFFLES AND DRAWS A … │
+RUNNER            ┌──────────┐┌──────────┐                                    │ ✖ [RUNNER] LOSES INFLUENCE // CAPTAIN… │
+¢6                │ DUKE    ◆││ CAPTAIN ▲│                                    │   [GHOSTWIRE] LIFTS 2¢ FROM [RUNNER]   │
+                  │ ▄█▀▀(◉)═╗││══▄ █▀▀▀▀█│                                    │ ── TURN 5 · NULLBYTE ──                │
+                  │ ▓▓█[¢]█▓▓││ ▐█▌▐▓▓▓▓▌│                                    │ > [NULLBYTE] OPENS AN AMBASSADOR CHAN… │
+                  │TAX +3¢   ││✖ LOST    │                                    │   [NULLBYTE] PULLS 2 CARDS FROM THE C… │
+                  │BLK AID   ││          │                                    │   [NULLBYTE] RETURNS 2 CARDS           │
+                  └──────────┘└──────────┘                                    │ ── TURN 6 · VEX ──                     │
+MOTH              ┌──────────┐┌──────────┐                                    │ > [VEX] RUNS ASSASSIN PROTOCOL ON [MO… │
+¢8                │ AMBASSAD◎││ ASSASSIN╳│                                    │ ✖ [MOTH] LOSES INFLUENCE // AMBASSADO… │
+                  │  ░▒▓▀▀▓▒░││  ▄█▓▓█▄ ╱│                                    │ ── TURN 7 · RUNNER ──                  │
+                  │  ▐═[▓▓]═▌││  █ ════▐▌│                                    │ > [RUNNER] BROADCASTS DUKE SIGNAL // … │
+                  │✖ LOST    ││KILL 3¢   │                                    │   +3¢ → [RUNNER]                       │
+                  │          ││-1 INFL   │                                    │ ── TURN 8 · MOTH ──                    │
+                  └──────────┘└──────────┘                                    │ > [MOTH] BROADCASTS DUKE SIGNAL // TA… │
+GHOSTWIRE         ┌──────────┐┌──────────┐                                    │ ! [NULLBYTE] CALLS [MOTH]'S DUKE A LIE │
+¢7                │ CONTESSA✧││ CONTESSA✧│                                    │   [MOTH] SHOWS DUKE // CLAIM VERIFIED  │
+                  │   ▐◆  ◆▌ ││   ▐◆  ◆▌ │                                    │   [MOTH] RESHUFFLES AND DRAWS A FRESH… │
+                  │ ▐░▒▓░▒▓░▌││ ▐░▒▓░▒▓░▌│                                    │ ✖ [NULLBYTE] LOSES INFLUENCE // CAPTA… │
+                  │BLK KILL  ││BLK KILL  │                                    │   +3¢ → [MOTH]                         │
+                  │          ││          │                                    │ ── TURN 9 · GHOSTWIRE ──               │
+                  └──────────┘└──────────┘                                    │ > [GHOSTWIRE] BROADCASTS DUKE SIGNAL … │
+▶ NULLBYTE        ┌──────────┐┌──────────┐                                    │   +3¢ → [GHOSTWIRE]                    │
+¢2                │ CAPTAIN ▲││ DUKE    ◆│                                    │ ── TURN 10 · NULLBYTE ──               │
+                  │══▄ █▀▀▀▀█││ ▄█▀▀(◉)═╗│                                    │ > [NULLBYTE] BROADCASTS DUKE SIGNAL /… │
+                  │ ▐█▌▐▓▓▓▓▌││ ▓▓█[¢]█▓▓│                                    ╰────────────────────────────────────────╯
+←/→ step · ↑/↓ ±10 · space play/pause · +/- speed · home/end · esc back

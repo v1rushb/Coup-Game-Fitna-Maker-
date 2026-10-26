@@ -1,0 +1,40 @@
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 1                                               ♪✖ no audio  ? help  q leave
+        ╭────────────────────────────────╮╭────────────────────────────────╮        ╭──────────────────────────────────╮
+        │ ⠋ GHOSTWIRE               HARD ││ ⠋ NULLBYTE                EASY │        │ NETLOG                           │
+        │ ¢2                          ●● ││ ¢2                          ●● │        │ // GAME 3 // 5 RUNNERS //        │
+        │ no cards exposed               ││ no cards exposed               │        │   JACKED IN                      │
+        │ thinking...                    ││ thinking...                    │        │ ── TURN 1 · VEX ──               │
+        ╰────────────────────────────────╯╰────────────────────────────────╯        │ > [VEX] BROADCASTS DUKE SIGNAL   │
+                        ╔══════════════════════════════════╗                        │   // TAX +3¢                     │
+                        ║ TREASURY 40¢ · DECK 5 · TURN 1   ║                        │                                  │
+                        ║ ──────────────────────────────── ║                        │                                  │
+                        ║ > VEX → TAX (claims DUKE)        ║                        │                                  │
+                        ║                                  ║                        │                                  │
+╭──────────────────╔════════════════════════════════════════════════════════════════════════════════╗                  │
+│ ⠋ MOTH        NOR║                                                                                ║                  │
+│ ¢2               ║   WELCOME TO THE CON                                                           ║                  │
+│ no cards exposed ║                                                                                ║                  │
+│ thinking...      ║   Every runner holds 2 face-down cards: their INFLUENCE.                       ║                  │
+│                  ║   Lose both and you're out. Last runner standing takes the city.               ║                  │
+│                  ║                                                                                ║                  │
+╰──────────────────║   On your turn you take one action. Some actions belong to a character:        ║                  │
+                   ║   you may claim ANY character, whether you hold it or not.                     ║                  │
+                   ║   Others can CHALLENGE the claim, or BLOCK it with a character of their own.   ║                  │
+                   ║                                                                                ║                  │
+                   ║   Your cards are at the bottom. The log is on the right.                       ║                  │
+                   ║                                                                                ║                  │
+                   ║   press enter to start                                                         ║                  │
+╔════════════════╗╔║                                                                                ║                  │
+║ DUKE          ◆║║╚════════════════════════════════════════════════════════════════════════════════╝                  │
+║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                                  ╰──────────────────────────────────╯
+║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║                                                ╭──────────────────────────────────╮
+║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║  you hold                                      │                                  │
+║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  DUKE + CAPTAIN                                │ enter: chat · t: taunt           │
+║   ▀█▄═══▄▄█▀ ║ ║║  ▄▓▓▓█▓▓▓▓▓▓▓█▄║                                                │                                  │
+║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  █▓▓▓█▓▓┃┃▓▓▓██║                                                │                                  │
+║────────────────║║────────────────║                                                │                                  │
+║ TAX +3¢        ║║ STEAL 2¢       ║                                                │                                  │
+║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                                │                                  │
+╚════════════════╝╚════════════════╝                                                ╰──────────────────────────────────╯
+ VEX claims DUKE for TAX. call the bluff?
+ [c]CHALLENGE  [p]PASS  [t]TAUNT  [?]HELP

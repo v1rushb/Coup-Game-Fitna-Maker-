@@ -1,0 +1,21 @@
+
+
+
+
+
+
+
+
+              ╭──────────────────────────────────────────────────────────────────────╮
+              │                                                                      │
+              │   JOIN ROOM                                                          │
+              │   room codes are found on your LAN first, then through the relay     │
+              │                                                                      │
+              │   > NEON-7K2Q                                                        │
+              │                                                                      │
+              │   joining as a player  (tab to switch)                               │
+              │   relay: none configured (settings)                                  │
+              │                                                                      │
+              │   enter connect · esc back                                           │
+              │                                                                      │
+              ╰──────────────────────────────────────────────────────────────────────╯

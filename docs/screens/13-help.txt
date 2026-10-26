@@ -1,0 +1,27 @@
+
+
+
+        ╭─────────────────────────────────────────────────────────────────────────────────╮
+        │                                                                                 │
+        │  CONTROLS                                                                       │
+        │                                                                                 │
+        │   1-8     actions: income, aid, coup, tax, assassinate, steal, exchange, audit  │
+        │   c       challenge the claim on the table                                      │
+        │   b       block (then pick the card if there's a choice)                        │
+        │   p       pass                                                                  │
+        │   1 / 2   pick a card when losing influence or proving a claim                  │
+        │   enter   chat    t  taunt menu                                                 │
+        │   m       mute    s  CRT scanlines                                              │
+        │   esc     cancel a choice    q  leave                                           │
+        │   ?       this help                                                             │
+        │                                                                                 │
+        │  RULES IN ONE BREATH                                                            │
+        │  Everyone has two hidden cards (influence) and coins. On your turn take         │
+        │  one action. Any character action may be a bluff: anyone can challenge.         │
+        │  A failed challenge costs the challenger a card; a caught bluff costs           │
+        │  the bluffer a card. 7 coins buys a Coup; at 10 you must Coup. Lose             │
+        │  both cards and you're out. Last runner standing wins.                          │
+        │                                                                                 │
+        │  any key to close                                                               │
+        │                                                                                 │
+        ╰─────────────────────────────────────────────────────────────────────────────────╯

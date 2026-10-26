@@ -1,0 +1,27 @@
+
+
+               ╭────────────────────────────────────────────────────────────────────╮
+               │                                                                    │
+               │   RUNNER RECORD // RUNNER                                          │
+               │                                                                    │
+               │   games played         3                                           │
+               │   wins                 2   ████████████████████░░░░░░░░░░  66.7%   │
+               │   win streak           1 / 1 best                                  │
+               │                                                                    │
+               │   bluffs               19 (5 caught)                               │
+               │   bluff success        ██████████████████████░░░░░░░░  73.7%       │
+               │   challenges           11 (7 won)                                  │
+               │   challenge accuracy   ███████████████████░░░░░░░░░░░  63.6%       │
+               │                                                                    │
+               │   blocks               8                                           │
+               │   coins earned         123                                         │
+               │   coups launched       6                                           │
+               │   times flatlined      1                                           │
+               │   longest game         41 turns                                    │
+               │                                                                    │
+               │   wins by mode: solo 2/2 · host 0/1                                │
+               │   last run: 2026-10-26 14:36                                       │
+               │                                                                    │
+               │   esc back                                                         │
+               │                                                                    │
+               ╰────────────────────────────────────────────────────────────────────╯

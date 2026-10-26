@@ -1,0 +1,6 @@
+/neoncoup
+/neoncoup.exe
+/dist/
+*.test
+*.out
+/coverage*

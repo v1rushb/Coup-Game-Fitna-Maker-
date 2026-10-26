@@ -1,0 +1,40 @@
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 12                                              ♪✖ no audio  ? help  q leave
+        ╭────────────────────────────────╮╭────────────────────────────────╮        ╭──────────────────────────────────╮
+        │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │        │ NETLOG                           │
+        │ ¢1                          ●● ││ ¢3                          ●○ │        │ > [VEX] SKIMS A CREDIT //        │
+        │ no cards exposed               ││ ✖ASSASN                        │        │   INCOME +1¢                     │
+        │                                ││                                │        │ ── TURN 7 · YOU ──               │
+        ╰────────────────────────────────╯╰────────────────────────────────╯        │ > [YOU] FLASHES A CAPTAIN        │
+                        ╔══════════════════════════════════╗                        │   BADGE AT [MOTH] // STEAL 2¢    │
+                        ║ TREASURY 33¢ · DECK 3 · TURN 12  ║                        │ [YOU] LIFTS 2¢ FROM [MOTH]       │
+                        ║ ──────────────────────────────── ║                        │ ── TURN 8 · MOTH ──              │
+                        ║ > YOU → EXCHANGE (claims         ║                        │ > [MOTH] BROADCASTS DUKE         │
+                        ║ AMBASSADOR)                      ║                        │   SIGNAL // TAX +3¢              │
+╭──────────────────────╮║                                  ║╭──────────────────────╮│ +3¢ → [MOTH]                     │
+│   MOTH        NORMAL │║ YOU IS SWAPPING CARDS            ║│   VEX           HARD ││ ── TURN 9 · GHOSTWIRE ──         │
+│ ¢3                ●● │║ waiting on: YOU                  ║│ ¢3                ●○ ││ > [GHOSTWIRE] RUNS ASSASSIN      │
+│ no cards exposed     │║                                  ║│ ✖CONTSA              ││   PROTOCOL ON [YOU] // -3¢       │
+│                      │║ COURT INTEL // face-up cards     ║│                      ││ ✖ [YOU] LOSES INFLUENCE //       │
+│                      │║ DUKE    0/3+1  ASSASN  1/3       ║│                      ││   CAPTAIN EXPOSED                │
+│                      │║ CAPTAIN 1/3    AMBSDR  0/3       ║│                      ││ ── TURN 10 · NULLBYTE ──         │
+╰──────────────────────╯║ CONTSA  1/3                      ║╰──────────────────────╯│ > [NULLBYTE] SKIMS A CREDIT //   │
+                        ║ (+n = in your hand)              ║                        │   INCOME +1¢                     │
+                        ║                                  ║                        │ ── TURN 11 · VEX ──              │
+                        ║                                  ║                        │ > [VEX] SKIMS A CREDIT //        │
+                        ║                                  ║                        │   INCOME +1¢                     │
+                        ║                                  ║                        │ ── TURN 12 · YOU ──              │
+                        ╚══════════════════════════════════╝                        │ > [YOU] OPENS AN AMBASSADOR      │
+╔[1]═════════════╗╔[2]═════════════╗╔[3]═════════════╗  EXCHANGE                    │   CHANNEL // EXCHANGE            │
+║ DUKE          ◆║║ DUKE          ◆║║ ASSASSIN      ╳║  keep 1 of 3                 │ (you draw DUKE + ASSASSIN)       │
+║     ▄▄▄▄▄▄     ║║     ▄▄▄▄▄▄     ║║      ▄▄▄▄     ╱║  selected 1/1                ╰──────────────────────────────────╯
+║   ▄█▀▀▀▀▀▀█▄   ║║   ▄█▀▀▀▀▀▀█▄   ║║    ▄█▓▓▓▓█▄  ╱ ║                              ╭──────────────────────────────────╮
+║   █  ▄▄ (◉)█═╗ ║║   █  ▄▄ (◉)█═╗ ║║   █▓▀▀▀▀▀▀▓█╱  ║  1-3 toggle                  │ [VEX] your firewall is made of … │
+║   █   ▄▄   █ ║ ║║   █   ▄▄   █ ║ ║║   █ ══════ ▐▌  ║  enter confirm               │ // TRINITY lost the uplink. Sea… │
+║   ▀█▄═══▄▄█▀ ║ ║║   ▀█▄═══▄▄█▀ ║ ║║   ▀█▄    ▄█▀▌  ║                              │ [CASE] nobody believes that Duke │
+║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  ▄▓▓▓▓▓▓▓▓▓▓▄  ║                              │ enter: chat · t: taunt           │
+║────────────────║║────────────────║║────────────────║                              │                                  │
+║ TAX +3¢        ║║ TAX +3¢        ║║ PAY 3¢: STRIKE ║                              │                                  │
+║ ✓ KEEP         ║║ BLOCKS FOR.AID ║║ -1 INFLUENCE   ║                              │                                  │
+╚════════════════╝╚════════════════╝╚════════════════╝                              ╰──────────────────────────────────╯
+ EXCHANGE: keep 1. selected: DUKE
+ 1-3 toggle · enter confirm · esc clear

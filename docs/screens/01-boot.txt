@@ -1,0 +1,17 @@
+
+   NEONTEK BIOS v4.20  (C) 2087 NEONTEK SYSTEMS
+   CPU: QUANTUM-8 @ 6.66 THz ................... OK
+   MEMORY TEST: 655360K ........................ OK
+   VECTORCORE GPU .............................. OK
+   NEURAL LINK ................................. CALIBRATED
+   MOUNTING /dev/court (15 cards) .............. OK
+   SEEDING ENTROPY POOL ........................ OK
+   CHIPTUNE DRIVER (2xPULSE TRI NOISE) ......... NO DEVICE (muted)
+   FIREWALL .................................... DISABLED (it's that kind of night)
+   JACKING IN ..........
+
+
+   █▄  █ █▀▀▀ ▄▀▀▄ █▄  █    ▄▀    ▄▀ ▄▀▀▀ ▄▀▀▄ █  █ █▀▀▄
+   █▀▄ █ █▄▄  █  █ █▀▄ █   ▄▀    ▄▀  █    █  █ █  █ █▄▄▀
+   █ ▀▄█ █    █  █ █ ▀▄█  ▄▀    ▄▀   █    █  █ █  █ █
+   ▀   ▀ ▀▀▀▀  ▀▀  ▀   ▀ ▀     ▀      ▀▀▀  ▀▀   ▀▀  ▀
