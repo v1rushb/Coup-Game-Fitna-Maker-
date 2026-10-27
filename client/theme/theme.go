@@ -29,6 +29,61 @@ var (
 	White   = lipgloss.Color("#ffffff")
 )
 
+// Palette is a full set of colors.
+type Palette struct {
+	Bg, Panel, Fg, Dim, Faint                              color.Color
+	Magenta, Cyan, Acid, Green, Red, Purple, Orange, White color.Color
+}
+
+// Palettes: the neon default, a colorblind-safe set (after Okabe and Ito,
+// brightened for a dark background, so red/green pairs become vermillion and
+// bluish green) and a high-contrast set with pure black, white and full
+// saturation.
+var palettes = map[string]Palette{
+	"neon": {Bg, Panel, Fg, Dim, Faint, Magenta, Cyan, Acid, Green, Red, Purple, Orange, White},
+	"colorblind": {
+		Bg: lipgloss.Color("#0b0814"), Panel: lipgloss.Color("#151122"), Fg: lipgloss.Color("#ecebf2"),
+		Dim: lipgloss.Color("#8a84a3"), Faint: lipgloss.Color("#4a4462"),
+		Magenta: lipgloss.Color("#e48bc0"), Cyan: lipgloss.Color("#6cc4f5"), Acid: lipgloss.Color("#f5ea5a"),
+		Green: lipgloss.Color("#1fc495"), Red: lipgloss.Color("#ff7a1f"), Purple: lipgloss.Color("#b49cff"),
+		Orange: lipgloss.Color("#f0b000"), White: lipgloss.Color("#ffffff"),
+	},
+	"contrast": {
+		Bg: lipgloss.Color("#000000"), Panel: lipgloss.Color("#000000"), Fg: lipgloss.Color("#ffffff"),
+		Dim: lipgloss.Color("#d8d8d8"), Faint: lipgloss.Color("#a8a8a8"),
+		Magenta: lipgloss.Color("#ff40ff"), Cyan: lipgloss.Color("#00ffff"), Acid: lipgloss.Color("#ffff00"),
+		Green: lipgloss.Color("#00ff00"), Red: lipgloss.Color("#ff5050"), Purple: lipgloss.Color("#d090ff"),
+		Orange: lipgloss.Color("#ffa500"), White: lipgloss.Color("#ffffff"),
+	},
+}
+
+// PaletteNames lists the palettes in menu order.
+var PaletteNames = []string{"neon", "colorblind", "contrast"}
+
+// PaletteTitle is a palette's menu label.
+func PaletteTitle(name string) string {
+	switch name {
+	case "colorblind":
+		return "COLORBLIND-SAFE"
+	case "contrast":
+		return "HIGH CONTRAST"
+	}
+	return "NEON"
+}
+
+// Use switches the process to a palette (unknown names mean neon). Styles
+// built before the switch keep their old colors, so callers rebuild their
+// Theme and art renderer afterwards. It is process-wide: the SSH server,
+// which hosts many sessions, never calls it.
+func Use(name string) {
+	p, ok := palettes[name]
+	if !ok {
+		p = palettes["neon"]
+	}
+	Bg, Panel, Fg, Dim, Faint = p.Bg, p.Panel, p.Fg, p.Dim, p.Faint
+	Magenta, Cyan, Acid, Green, Red, Purple, Orange, White = p.Magenta, p.Cyan, p.Acid, p.Green, p.Red, p.Purple, p.Orange, p.White
+}
+
 // CharColor is a character's signature color.
 func CharColor(c engine.Character) color.Color {
 	switch c {
@@ -123,6 +178,7 @@ var asciiMap = map[rune]string{
 	'✧': "*", '≡': "=", '»': ">", '«': "<", '▮': "|", '▯': ".", '╟': "+", '╢': "+", '⇄': "<>", '⟳': "@",
 	'♪': "~", '♫': "~", '·': ".", '…': "~", '•': "*", '→': ">", '←': "<", '⚡': "!",
 	'▁': "_", '▂': "_", '▃': "_", '▅': "=", '▆': "=", '▇': "#", '▔': "-", '¦': "|", '╌': "-",
+	'▸': ">", '↻': "@", '◂': "<",
 	'⠋': "|", '⠙': "/", '⠹': "-", '⠸': "\\", '⠼': "|", '⠴': "/", '⠦': "-", '⠧': "\\", '⠇': "|", '⠏': "/",
 }
 

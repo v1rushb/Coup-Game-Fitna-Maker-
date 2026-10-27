@@ -18,6 +18,9 @@ install, and bots that read your bluffs.
   fallbacks, `--ascii`, CRT scanlines, card flips, glitches, and an NES-style synth.
 - **Bots at three levels**, from honest Script Kiddies to Black ICE, which tracks what every
   opponent probably holds.
+- **Easy to follow**: every move plays out as a beat you can read (Relaxed, Normal or Fast), a
+  bottom bar spells out your choices and what they risk, and a card tracker in the middle counts
+  what's still unseen.
 
 ---
 
@@ -27,6 +30,7 @@ install, and bots that read your bluffs.
 - [Quick start](#quick-start)
 - [Commands](#commands)
 - [How to play](#how-to-play)
+- [Reading the table](#reading-the-table)
 - [Multiplayer](#multiplayer)
 - [Running a relay](#running-a-relay)
 - [Bots](#bots)
@@ -86,8 +90,9 @@ Global flags, accepted by every command:
 ### `neoncoup` (main menu)
 Solo run, host, join, tutorial, replays, stats and settings.
 
-### `neoncoup solo [--bots N] [--difficulty easy|normal|hard] [--magistrate] [--window SECONDS]`
-A private game against 1–5 bots. Defaults come from your config (3 Fixers, 8-second windows).
+### `neoncoup solo [--bots N] [--difficulty easy|normal|hard] [--speed relaxed|normal|fast] [--magistrate] [--window SECONDS]`
+A private game against 1–5 bots. Defaults come from your config (3 Fixers at Relaxed speed, with
+the reaction window set by the speed: 12 s at Relaxed, 8 s at Normal, 5 s at Fast).
 
 ### `neoncoup tutorial`
 A rigged three-player game in which a coach walks you through Tax, Steal, calling a bluff, blocking,
@@ -103,7 +108,8 @@ Opens a room and prints the room code with the exact join commands, then drops y
 | `--seats N` | 4 | seats at the table, 2–6 |
 | `--no-bots` | off | leave empty seats empty instead of filling them with bots |
 | `--difficulty L` | normal | bot difficulty |
-| `--window S` | 8 | challenge/block window in seconds |
+| `--speed S` | relaxed | presentation speed for everyone at the table: `relaxed`, `normal`, `fast` |
+| `--window S` | by speed | challenge/block window in seconds (12 at Relaxed, 8 at Normal, 5 at Fast) |
 | `--turn S` | 60 | turn timer; `0` turns it off |
 | `--hold S` | 60 | how long a dropped player's seat is held before a bot takes over |
 | `--magistrate` | off | Magistrate variant (recommended for 5+ players) |
@@ -164,20 +170,79 @@ challenged too. Lose both cards and you're out. The last runner standing wins.
 | `8` | Audit (variant) | a target with 3+¢ pays 2¢ to the treasury | Magistrate | — |
 
 When a window opens: `c` challenge, `b` block (then `1`/`2` to pick the card if there's a choice),
-`p` pass. Windows run on a timer (8 s by default) and close early once everyone has passed. When
-challenged, or when you must lose an influence, press `1` or `2` to pick the card to flip. Flipping
-the claimed card proves the claim; flipping any other card concedes, as the rulebook allows.
+`p` pass. Windows open once the claim has been announced, run on a timer (12 s at Relaxed by
+default) and close early once everyone has passed. When challenged, or when you must lose an
+influence, press `1` or `2` to pick the card to flip. Flipping the claimed card proves the claim;
+flipping any other card concedes, as the rulebook allows.
 
-Other keys: `?` help · `m` mute · `s` CRT scanlines · `t` taunts · `enter` chat ·
-`[`/`]` scroll the log · `q` leave.
+| key | does |
+|-----|------|
+| `tab` | inspect a player: claims, actions and face-up cards this game (tab again for the next) |
+| `space` | skip the current beat (solo) |
+| `P` | pause: bots and timers freeze (solo; Shift+P, since `p` passes) |
+| `esc` | cancel a choice, or open settings (pauses solo play) |
+| `n` / `m` | next music track / mute |
+| `pgup` `pgdn` (or `[` `]`) | scroll the netlog |
+| `enter` / `t` | chat / taunts |
+| `?` / `s` / `q` | help / CRT scanlines / leave |
 
 Key reminders on the table: actions you can back up show in **green**, bluffs in **magenta with
-a `~`**. The center terminal's *court intel* counts face-up cards and the ones in your hand. A
-character struck through there has every copy accounted for, so any claim of it is a lie.
+a `~`**. Actions you can't take are dimmed, and the bottom bar says why ("Coup needs 7¢").
 
 Rules notes (Assassin refunds, double losses, eliminated players' coins, the Magistrate) are
 written up in [PLAN.md](PLAN.md#rules-decisions-and-rulebook-cross-check), including where this
 implementation had to interpret the rulebook.
+
+## Reading the table
+
+**Pacing.** Every event plays out as a *beat*: it's announced, animated, then settles, and the
+table never jumps ahead while a beat is playing. At Relaxed (the default) an action announcement
+takes 1.5 s, a challenge or block 2 s, a lost influence 2 s, a card redraw 2.5 s and an
+elimination 3 s; Normal is about 0.6× that and Fast 0.3×. Bots think on the same clock. The host
+holds each reaction window until the announcement in front of it has played, using its own clock
+rather than waiting on clients, so nobody loses reaction time to an animation and a slow client
+can't stall the table. In solo, `space` skips a beat and `P` pauses.
+
+**Focus.**
+- *Banner*: a large banner over the table announces each move, e.g. `VEX ▸ CLAIMS DUKE ▸ TAX
+  +3¢`. A target's panel turns red with `◀ TARGET`, and panels outside the beat dim.
+- *Context bar*: the line above the hotkeys says what's happening, what you can do and what each
+  choice risks, with a draining countdown: `VEX claims Duke to take 3 coins. [C] Challenge (if VEX
+  has a Duke, you lose an influence) [P] Pass ███████░░ 9s`.
+- *Your turn*: the border pulses and a sound plays.
+- *Active player*: the mover's panel always wears a `▶` and a heavy border.
+
+**Card tracker.** The middle of the table shows every character as a mini card:
+- `REVEALED x/3` counts copies face up anywhere.
+- `UNSEEN y` counts copies that aren't face up and aren't in your hand, so they could be in a
+  rival's hand or the deck.
+- At `UNSEEN 0` the card is stamped `▓ NO COPIES LEFT ▓` in red: any claim of it is a guaranteed
+  bluff, and the context bar says so.
+- The deck and treasury sit beside the row.
+- On narrower terminals the cards become tiles (`DUKE R1/3 U2`).
+
+**Animations.**
+- Coins fly between the treasury and players (or between players on a steal) while the counters
+  tick.
+- A proven card goes back into the deck, the deck shuffles, and a fresh card comes back face down;
+  only its owner sees it flip.
+- Exchanged cards fly in and out face down.
+- A lost card flips and glitches.
+- An eliminated runner's panel tears and greys to `[ DISCONNECTED ]`.
+- Opponents only ever see card backs move. *Reduce motion* in settings swaps all of this for still
+  frames.
+
+**History.**
+- *Claim badges*: each rival's panel shows what they've claimed this game (`DUKE×2 CAPT×1`).
+- *Netlog*: color-coded with an icon per event type, and adds a one-line `LAST ROUND // …` summary
+  when your turn starts.
+- *Inspect*: `tab` opens a player's full history.
+- *Post-game screen*: replays the game to reveal every hand, each player's bluffs that got away
+  and were caught, and a timeline of key moments.
+
+**Hints.** The first time each situation comes up (your first challenge window, block, exchange
+and so on) a short tip explains it. Hints can be turned off in settings, and turning them back on
+shows them all again.
 
 ## Multiplayer
 
@@ -189,7 +254,8 @@ implementation had to interpret the rulebook.
   players reach it through the relay's `/join/CODE`.
 - **SSH**: `neoncoup serve-ssh` turns a server into a lobby anyone with `ssh` can use.
 
-**Lobby.** Nicknames (sanitized, deduplicated), ready-up, spectators, and host settings: seats,
+**Lobby.** Nicknames (sanitized, deduplicated), ready-up, spectators, and host settings (`v`
+cycles the speed everyone plays at): seats,
 bot fill and difficulty, window and turn timers, Magistrate, seat hold.
 
 **Reconnects.** Every player gets a rejoin token, which is also saved to disk. If your link
@@ -200,6 +266,8 @@ point you take it over again.
 **Security.** The host is authoritative: clients send intents, and the host validates every one
 against the engine and sends each player a view redacted for their seat. Another player's hidden
 card never crosses the wire. Mismatched protocol versions are rejected with a clear message.
+This release speaks protocol v2 (pacing and solo controls), so every player and every host,
+including a dedicated server such as `host --headless`, needs to run the same release.
 Input is rate-limited, and nicknames and chat are stripped of ANSI/OSC escape sequences, control
 characters and bidi overrides.
 
@@ -257,16 +325,27 @@ Script Kiddie 17%.
 
 All music and effects are synthesized live by an NES-style chip: two pulse channels (12.5/25/50%
 duty, band-limited), a 32-step triangle, a 15-bit LFSR noise channel and the console's nonlinear
-mixer. It plays original compositions:
+mixer. Everything it plays is an original composition:
 
 - a moody menu theme;
-- a driving in-game loop built from four sections (hook, climb, breakdown, countermelody) that
-  branch randomly so it doesn't get repetitive;
+- an in-game playlist of four tracks, each 2–2½ minutes long with its own sections:
+  - **Neon Protocol** (the original theme): hook, climb, breakdown and countermelody sections that
+    branch randomly.
+  - **Rain on Chrome** (90 BPM, C minor): moody arpeggios and sparse hats, the calm opener.
+  - **Overclock** (150 BPM, D minor): galloping triangle bass, a punchy lead and busy drums.
+  - **Neon Protocol (Chrome Rain Remix)** (120 BPM, A minor): the theme laced with Rain's
+    arpeggios and Overclock's riff, plus a new half-time section built on the hook.
 - a tension stinger when a challenge window opens on you, which ducks the music underneath it;
 - victory and defeat jingles;
-- effects for coins, card flips, challenges, blocks and the elimination glitch.
+- effects for coins, card flips, challenges, blocks, your turn and the elimination glitch.
 
-Audio runs on its own goroutine and the UI never blocks on it. Volume and mute (`m`) persist.
+The playlist plays in shuffled order and never plays the same track twice in a row. Tracks
+crossfade over 3 s, and a corner toast shows `♪ NOW PLAYING // …`. When the game gets tense
+(anyone down to one influence or holding 7+ coins, or only two runners left) the playlist favors
+Overclock next and the current track gains an extra layer of hats. `n` skips a track.
+
+Audio runs on its own goroutine and the UI never blocks on it. Master, music and SFX volumes and
+mute (`m`) persist.
 With `--no-audio`, over SSH, or when no audio device is found, the game runs silently and shows
 a muted icon. On Linux it talks to PulseAudio/PipeWire directly, with `aplay` as a fallback. On
 macOS and Windows it uses oto. `make wav` renders every song and effect to WAV files.
@@ -278,12 +357,18 @@ Support/neoncoup` on macOS, `%AppData%\neoncoup` on Windows), or `$NEONCOUP_HOME
 
 | file | contents |
 |------|----------|
-| `config.json` | name, volume, mute, CRT, ASCII, relay URL, timers, bot defaults, port, rejoin tokens |
+| `config.json` | name, master/music/SFX volume, mute, speed, hints, palette, Reduce motion, CRT, ASCII, relay URL, timers, bot defaults, port, rejoin tokens |
 | `stats.json` | games, wins, streaks, bluffs (and how many were caught), challenges (and how many were right), blocks, coins, coups |
 | `replays/*.json` | one per finished game: seed, config, seats and every intent. The engine is deterministic, so that reproduces the game exactly. |
 | `neoncoup.log` | host/server logs from TUI sessions (kept off the screen) |
 
 `$NEONCOUP_RELAY` sets a default relay. `NO_COLOR` disables color.
+
+**Accessibility.** Settings (`esc` in game, or Settings in the menu) has three palettes: the neon
+default, a colorblind-safe one (Okabe–Ito-based: vermillion and bluish green instead of red and
+green) and high contrast (black, white and full color). *Reduce motion* turns off sliding cards,
+glitches, pulses and screen jolts. Over SSH the palette stays on neon, because one server process
+hosts every session.
 
 ## Screens
 
@@ -367,7 +452,8 @@ stripped). Click to expand.
               │   ▶ Bots            ◀ 3 ▶                                            │
               │     Difficulty      ◀ FIXER (normal) ▶                               │
               │     Magistrate      ◀ OFF ▶                                          │
-              │     Reaction window ◀ 8s ▶                                           │
+              │     Speed           ◀ RELAXED ▶                                      │
+              │     Reaction window ◀ AUTO (12s) ▶                                   │
               │                                                                      │
               │   1 to 5 opponents. Magistrate is recommended for 5+ players.        │
               │                                                                      │
@@ -386,7 +472,6 @@ stripped). Click to expand.
 
 
 
-
               ╭──────────────────────────────────────────────────────────────────────╮
               │                                                                      │
               │   HOST ROOM                                                          │
@@ -395,7 +480,8 @@ stripped). Click to expand.
               │   ▶ Seats           ◀ 4 ▶                                            │
               │     Fill with bots  ◀ ON ▶                                           │
               │     Bot difficulty  ◀ FIXER (normal) ▶                               │
-              │     Reaction window ◀ 8s ▶                                           │
+              │     Speed           ◀ RELAXED ▶                                      │
+              │     Reaction window ◀ AUTO (12s) ▶                                   │
               │     Turn timer      ◀ 60s ▶                                          │
               │     Magistrate      ◀ OFF ▶                                          │
               │     Seat hold       ◀ 60s ▶                                          │
@@ -454,11 +540,12 @@ stripped). Click to expand.
       │                                            │  │                                      │
       │ ● RUNNER             READY [HOST] (you)    │  │ seats        4                       │
       │ ● TRINITY            READY                 │  │ bot fill     ON (normal)             │
-      │ ● CASE               NOT READY             │  │ window       8s                      │
-      │ ○ bot #1             FIXER (NORMAL)        │  │ turn timer   60s                     │
-      │                                            │  │ magistrate   OFF                     │
-      │ 1 spectator(s) watching                    │  │ seat hold    60s                     │
-      ╰────────────────────────────────────────────╯  ╰──────────────────────────────────────╯
+      │ ● CASE               NOT READY             │  │ speed        RELAXED                 │
+      │ ○ bot #1             FIXER (NORMAL)        │  │ window       AUTO (12s)              │
+      │                                            │  │ turn timer   60s                     │
+      │ 1 spectator(s) watching                    │  │ magistrate   OFF                     │
+      ╰────────────────────────────────────────────╯  │ seat hold    60s                     │
+                                                      ╰──────────────────────────────────────╯
 
       ╭──────────────────────────────────────────────────────────────────────────────────────╮
       │ // TRINITY jacked in                                                                 │
@@ -472,8 +559,7 @@ stripped). Click to expand.
       │                                                                                      │
       ╰──────────────────────────────────────────────────────────────────────────────────────╯
 
-      enter START · +/- seats · f bot fill · d difficulty
-      w window · t turn timer · g magistrate · tab chat · q leave
+      enter START · +/- seats · f bot fill · d difficulty · v speed
 ```
 
 </details>
@@ -482,45 +568,45 @@ stripped). Click to expand.
 <summary><b>Game table, 120x40: an assassination aimed at you, challenge window open</b></summary>
 
 ```text
- NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 9                                               ♪✖ no audio  ? help  q leave
-        ╭────────────────────────────────╮╭────────────────────────────────╮        ╭──────────────────────────────────╮
-        │ ▶ GHOSTWIRE               HARD ││ ⠙ NULLBYTE                EASY │        │ NETLOG                           │
-        │ ¢1                          ●● ││ ¢2                          ●○ │        │ ── TURN 5 · NULLBYTE ──          │
-        │ no cards exposed               ││ ✖ASSASN                        │        │ > [NULLBYTE] BROADCASTS DUKE     │
-        │ claims ASSASSIN                ││ thinking...                    │        │   SIGNAL // TAX +3¢              │
-        ╰────────────────────────────────╯╰────────────────────────────────╯        │ ! [MOTH] CALLS [NULLBYTE]'S      │
-                        ╔══════════════════════════════════╗                        │   DUKE A LIE                     │
-                        ║ TREASURY 35¢ · DECK 5 · TURN 9   ║                        │ [NULLBYTE] WAS BLUFFING //       │
-                        ║ ──────────────────────────────── ║                        │   FLIPS ASSASSIN                 │
-                        ║ > GHOSTWIRE → ASSASSINATE YOU    ║                        │ ✖ [NULLBYTE] LOSES INFLUENCE     │
-                        ║ (claims ASSASSIN)                ║                        │   // ASSASSIN EXPOSED            │
-╭──────────────────────╮║                                  ║╭──────────────────────╮│ NULLBYTE'S TAX IS VOIDED         │
-│ ⠙ MOTH        NORMAL │║ CHALLENGE WINDOW OPEN            ║│ ⠙ VEX           HARD ││ ── TURN 6 · VEX ──               │
-│ ¢3                ●● │║ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░  5.2s   ║│ ¢2                ●○ ││ > [VEX] SKIMS A CREDIT //        │
-│ no cards exposed     │║ waiting on: VEX, YOU, MOTH,      ║│ ✖CONTSA              ││   INCOME +1¢                     │
-│ thinking...          │║ NULLBYTE                         ║│ thinking...          ││ ── TURN 7 · YOU ──               │
-│                      │║                                  ║│                      ││ > [YOU] FLASHES A CAPTAIN        │
-│                      │║ COURT INTEL // face-up cards     ║│                      ││   BADGE AT [MOTH] // STEAL 2¢    │
-╰──────────────────────╯║ DUKE    0/3+1  ASSASN  1/3       ║╰──────────────────────╯│ [YOU] LIFTS 2¢ FROM [MOTH]       │
-                        ║ CAPTAIN 0/3+1  AMBSDR  0/3       ║                        │ ── TURN 8 · MOTH ──              │
-                        ║ CONTSA  1/3                      ║                        │ > [MOTH] BROADCASTS DUKE         │
-                        ║ (+n = in your hand)              ║                        │   SIGNAL // TAX +3¢              │
-                        ║                                  ║                        │ +3¢ → [MOTH]                     │
-                        ║                                  ║                        │ ── TURN 9 · GHOSTWIRE ──         │
-                        ╚══════════════════════════════════╝                        │ > [GHOSTWIRE] RUNS ASSASSIN      │
-╔════════════════╗╔════════════════╗  RUNNER  seat 2                                │   PROTOCOL ON [YOU] // -3¢       │
-║ DUKE          ◆║║ CAPTAIN       ▲║  ¢ 7                                           │                                  │
-║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                                  ╰──────────────────────────────────╯
-║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║  coup armed (7)                                ╭──────────────────────────────────╮
-║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║                                                │ [VEX] your firewall is made of … │
-║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  you hold                                      │ // TRINITY lost the uplink. Sea… │
-║   ▀█▄═══▄▄█▀ ║ ║║  ▄▓▓▓█▓▓▓▓▓▓▓█▄║  DUKE + CAPTAIN                                │ [CASE] nobody believes that Duke │
-║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  █▓▓▓█▓▓┃┃▓▓▓██║                                                │ enter: chat · t: taunt           │
-║────────────────║║────────────────║                                                │                                  │
-║ TAX +3¢        ║║ STEAL 2¢       ║                                                │                                  │
-║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                                │                                  │
-╚════════════════╝╚════════════════╝                                                ╰──────────────────────────────────╯
- GHOSTWIRE claims ASSASSIN for ASSASSINATE. call the bluff?
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 9  ▶ GHOSTWIRE                                  ♪✖ no audio  ? help  q leave
+         ╔════════════════════════════════╗╭────────────────────────────────╮          ╭───────────────────────────────╮
+         ║ ▶ GHOSTWIRE               HARD ║│ ⠙ NULLBYTE                EASY │          │ NETLOG                        │
+         ║ ¢1                          ●● ║│ ¢2 ✖ASSN                    ●○ │          │ ✖ NULLBYTE'S TAX IS VOIDED    │
+         ║ ASSN×1 CAPT×1                  ║│ DUKE×1                         │          │ ── TURN 6 · VEX ──            │
+         ║ claims ASSASSIN                ║│ thinking...                    │          │ ▸ [VEX] SKIMS A CREDIT //     │
+         ╚════════════════════════════════╝╰────────────────────────────────╯          │   INCOME +1¢                  │
+                  ╔═════════════════════════════════════════════════╗                  │ ── TURN 7 · YOU ──            │
+                  ║ TREASURY 35¢ · DECK 5                           ║                  │ LAST ROUND // YOU tax ·       │
+                  ║ > GHOSTWIRE → ASSASSINATE YOU (claims ASSASSIN) ║                  │   MOTH foreign aid (blocked   │
+                  ║ CHALLENGE WINDOW OPEN                           ║                  │   by YOU) · GHOSTWIRE         │
+                  ║ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░  5.2s   ║                  │   steal→VEX (blocked by VEX)  │
+╭────────────────╮║                                                 ║╭────────────────╮│   (bluff caught) +2¢ ·        │
+│ ⠙ MOTH         │║ COURT TRACKER // revealed: face up · unseen: a… ║│ ⠙ VEX          ││   NULLBYTE tax (bluff caught) │
+│ ¢3          ●● │║  DUKE           ASSASSIN       CAPTAIN          ║│ ¢2 ✖CONT    ●○ ││   · VEX income                │
+│ DUKE×1         │║ REVEALED 0/3   REVEALED 1/3   REVEALED 0/3      ║│ AMBS×1         ││ ▸ [YOU] FLASHES A CAPTAIN     │
+│ thinking...    │║ UNSEEN 2       UNSEEN 2       UNSEEN 2          ║│ thinking...    ││   BADGE AT [MOTH] // STEAL 2¢ │
+│                │║                                                 ║│                ││ ¢ [YOU] LIFTS 2¢ FROM         │
+│                │║  AMBASSADOR     CONTESSA                        ║│                ││   [MOTH]                      │
+╰────────────────╯║ REVEALED 0/3   REVEALED 1/3                     ║╰────────────────╯│ ── TURN 8 · MOTH ──           │
+                  ║ UNSEEN 3       UNSEEN 2                         ║                  │ ▸ [MOTH] BROADCASTS DUKE      │
+                  ║                                                 ║                  │   SIGNAL // TAX +3¢           │
+                  ║                                                 ║                  │ ¢ +3¢ → [MOTH]                │
+                  ║                                                 ║                  │ ── TURN 9 · GHOSTWIRE ──      │
+                  ║                                                 ║                  │ ▸ [GHOSTWIRE] RUNS ASSASSIN   │
+                  ╚═════════════════════════════════════════════════╝                  │   PROTOCOL ON [YOU] // -3¢    │
+╔════════════════╗╔════════════════╗  RUNNER  seat 2                                   │                               │
+║ DUKE          ◆║║ CAPTAIN       ▲║  ¢ 7                                              │                               │
+║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                                     ╰───────────────────────────────╯
+║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║  coup armed (7)                                   ╭───────────────────────────────╮
+║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║                                                   │ [VEX] your firewall is made … │
+║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  you hold                                         │ // TRINITY lost the uplink. … │
+║   ▀█▄═══▄▄█▀ ║ ║║  ▄▓▓▓█▓▓▓▓▓▓▓█▄║  DUKE + CAPTAIN                                   │ [CASE] nobody believes that … │
+║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  █▓▓▓█▓▓┃┃▓▓▓██║                                                   │ enter: chat · t: taunt        │
+║────────────────║║────────────────║                                                   │                               │
+║ TAX +3¢        ║║ STEAL 2¢       ║                                                   │                               │
+║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                                   │                               │
+╚════════════════╝╚════════════════╝                                                   ╰───────────────────────────────╯
+ GHOSTWIRE claims Assassin to assassinate you.  [C] Challenge (wrong: you lose 1)  [P] Pass  ██████░░░ 6s
  [c]CHALLENGE  [p]PASS  [t]TAUNT  [?]HELP
 ```
 
@@ -530,23 +616,23 @@ stripped). Click to expand.
 <summary><b>Game table at the minimum size, 100x30</b></summary>
 
 ```text
- NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 9                           ♪✖ no audio  ? help  q leave
- ╭────────────────────────────────╮╭────────────────────────────────╮ ╭────────────────────────────╮
- │ ▶ GHOSTWIRE               HARD ││ ⠙ NULLBYTE                EASY │ │ NETLOG                     │
- │ ¢1                          ●● ││ ¢2                          ●○ │ │ ── TURN 7 · YOU ──         │
- │ no cards exposed               ││ ✖ASSASN                        │ │ > [YOU] FLASHES A          │
- │ claims ASSASSIN                ││ thinking...                    │ │   CAPTAIN BADGE AT [MOTH]  │
- ╰────────────────────────────────╯╰────────────────────────────────╯ │   // STEAL 2¢              │
-╭────────────────╮╔════════════════════════════════╗╭────────────────╮│ [YOU] LIFTS 2¢ FROM        │
-│ ⠙ MOTH         │║ TREASURY 35¢ · DECK 5 · TURN 9 ║│ ⠙ VEX          ││   [MOTH]                   │
-│ ¢3          ●● │║ > GHOSTWIRE → ASSASSINATE YOU  ║│ ¢2          ●○ ││ ── TURN 8 · MOTH ──        │
-│ none exposed   │║ (claims ASSASSIN)              ║│ ✖CONTSA        ││ > [MOTH] BROADCASTS DUKE   │
-│ thinking...    │║ CHALLENGE WINDOW OPEN          ║│ thinking...    ││   SIGNAL // TAX +3¢        │
-│                │║ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░  5.2s   ║│                ││ +3¢ → [MOTH]               │
-│                │║ waiting on: VEX, YOU, MOTH,    ║│                ││ ── TURN 9 · GHOSTWIRE ──   │
-╰────────────────╯║ NULLBYTE                       ║╰────────────────╯│ > [GHOSTWIRE] RUNS         │
-                  ╚════════════════════════════════╝                  │   ASSASSIN PROTOCOL ON     │
-╔════════════════╗╔════════════════╗  RUNNER  seat 2                  │   [YOU] // -3¢             │
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 9  ▶ GHOSTWIRE              ♪✖ no audio  ? help  q leave
+ ╔════════════════════════════════╗╭────────────────────────────────╮ ╭────────────────────────────╮
+ ║ ▶ GHOSTWIRE               HARD ║│ ⠙ NULLBYTE                EASY │ │ NETLOG                     │
+ ║ ¢1                          ●● ║│ ¢2 ✖ASSN                    ●○ │ │ ▸ [YOU] FLASHES A          │
+ ║ ASSN×1 CAPT×1                  ║│ DUKE×1                         │ │   CAPTAIN BADGE AT [MOTH]  │
+ ║ claims ASSASSIN                ║│ thinking...                    │ │   // STEAL 2¢              │
+ ╚════════════════════════════════╝╰────────────────────────────────╯ │ ¢ [YOU] LIFTS 2¢ FROM      │
+╭────────────────╮╔════════════════════════════════╗╭────────────────╮│   [MOTH]                   │
+│ ⠙ MOTH         │║ TREASURY 35¢ · DECK 5          ║│ ⠙ VEX          ││ ── TURN 8 · MOTH ──        │
+│ ¢3          ●● │║ > GHOSTWIRE → ASSASSINATE YOU  ║│ ¢2 ✖CONT    ●○ ││ ▸ [MOTH] BROADCASTS DUKE   │
+│ DUKE×1         │║ (claims ASSASSIN)              ║│ AMBS×1         ││   SIGNAL // TAX +3¢        │
+│ thinking...    │║ CHALLENGE WINDOW OPEN          ║│ thinking...    ││ ¢ +3¢ → [MOTH]             │
+│                │║ DUKE R0/3 U2  ASSN R1/3 U2     ║│                ││ ── TURN 9 · GHOSTWIRE ──   │
+│                │║ CAPT R0/3 U2  AMBS R0/3 U3     ║│                ││ ▸ [GHOSTWIRE] RUNS         │
+╰────────────────╯║ CONT R1/3 U2                   ║╰────────────────╯│   ASSASSIN PROTOCOL ON     │
+                  ╚════════════════════════════════╝                  │   [YOU] // -3¢             │
+╔════════════════╗╔════════════════╗  RUNNER  seat 2                  │                            │
 ║ DUKE          ◆║║ CAPTAIN       ▲║  ¢ 7                             │                            │
 ║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                    ╰────────────────────────────╯
 ║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║  coup armed (7)                  ╭────────────────────────────╮
@@ -558,7 +644,7 @@ stripped). Click to expand.
 ║ TAX +3¢        ║║ STEAL 2¢       ║                                  │                            │
 ║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                  │                            │
 ╚════════════════╝╚════════════════╝                                  ╰────────────────────────────╯
- GHOSTWIRE claims ASSASSIN for ASSASSINATE. call the bluff?
+ GHOSTWIRE claims Assassin to assassinate you.  [C] Challenge  [P] Pass  ██████░░░ 6s
  [c]CHALLENGE  [p]PASS  [t]TAUNT  [?]HELP
 ```
 
@@ -568,45 +654,45 @@ stripped). Click to expand.
 <summary><b>You called a bluff: waiting for the claimant to flip a card</b></summary>
 
 ```text
- NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 13                                              ♪✖ no audio  ? help  q leave
-        ╭────────────────────────────────╮╭────────────────────────────────╮        ╭──────────────────────────────────╮
-        │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │        │ NETLOG                           │
-        │ ¢1                          ●● ││ ¢3                          ●○ │        │ ── TURN 8 · MOTH ──              │
-        │ no cards exposed               ││ ✖ASSASN                        │        │ > [MOTH] BROADCASTS DUKE         │
-        │                                ││                                │        │   SIGNAL // TAX +3¢              │
-        ╰────────────────────────────────╯╰────────────────────────────────╯        │ +3¢ → [MOTH]                     │
-                        ╔══════════════════════════════════╗                        │ ── TURN 9 · GHOSTWIRE ──         │
-                        ║ TREASURY 33¢ · DECK 5 · TURN 13  ║                        │ > [GHOSTWIRE] RUNS ASSASSIN      │
-                        ║ ──────────────────────────────── ║                        │   PROTOCOL ON [YOU] // -3¢       │
-                        ║ > MOTH → TAX (claims DUKE)       ║                        │ ✖ [YOU] LOSES INFLUENCE //       │
-                        ║ YOU CHALLENGES MOTH's DUKE       ║                        │   CAPTAIN EXPOSED                │
-╭──────────────────────╮║                                  ║╭──────────────────────╮│ ── TURN 10 · NULLBYTE ──         │
-│ ⠙ MOTH        NORMAL │║ PROVE IT OR LOSE IT              ║│   VEX           HARD ││ > [NULLBYTE] SKIMS A CREDIT //   │
-│ ¢3                ●● │║ waiting on: MOTH                 ║│ ¢3                ●○ ││   INCOME +1¢                     │
-│ no cards exposed     │║                                  ║│ ✖CONTSA              ││ ── TURN 11 · VEX ──              │
-│ CHALLENGED! proving. │║ COURT INTEL // face-up cards     ║│                      ││ > [VEX] SKIMS A CREDIT //        │
-│                      │║ DUKE    0/3+1  ASSASN  1/3       ║│                      ││   INCOME +1¢                     │
-│                      │║ CAPTAIN 1/3    AMBSDR  0/3       ║│                      ││ ── TURN 12 · YOU ──              │
-╰──────────────────────╯║ CONTSA  1/3                      ║╰──────────────────────╯│ > [YOU] OPENS AN AMBASSADOR      │
-                        ║ (+n = in your hand)              ║                        │   CHANNEL // EXCHANGE            │
-                        ║                                  ║                        │ (you draw DUKE + ASSASSIN)       │
-                        ║                                  ║                        │ [YOU] RETURNS 2 CARDS            │
-                        ║                                  ║                        │ ── TURN 13 · MOTH ──             │
-                        ║                                  ║                        │ > [MOTH] BROADCASTS DUKE         │
-                        ╚══════════════════════════════════╝                        │   SIGNAL // TAX +3¢              │
-╔════════════════╗┌────────────────┐  RUNNER  seat 2                                │ ! [YOU] CALLS [MOTH]'S DUKE A    │
-║ DUKE          ◆║│ CAPTAIN       ▲│  ¢ 7                                           │   LIE                            │
-║     ▄▄▄▄▄▄     ║│═══▄▄   ▄▄▄▄▄▄  │  influence ●○                                  ╰──────────────────────────────────╯
-║   ▄█▀▀▀▀▀▀█▄   ║│  ▐██▌ █▀▀▀▀▀▀█ │  coup armed (7)                                ╭──────────────────────────────────╮
-║   █  ▄▄ (◉)█═╗ ║│   ▀█▄▐▓▓▓▓▓▓▓▌ │                                                │ [VEX] your firewall is made of … │
-║   █   ▄▄   █ ║ ║│     ▀█▄▄▄▄▄▄▄█ │  you hold                                      │ // TRINITY lost the uplink. Sea… │
-║   ▀█▄═══▄▄█▀ ║ ║│  ▄▓▓▓█▓▓▓▓▓▓▓█▄│  DUKE                                          │ [CASE] nobody believes that Duke │
-║  ▄▓▓▓█[¢]█▓▓▓▄ ║│  █▓▓▓█▓▓┃┃▓▓▓██│                                                │ enter: chat · t: taunt           │
-║────────────────║│────────────────│                                                │                                  │
-║ TAX +3¢        ║│ ✖ FLATLINED    │                                                │                                  │
-║ BLOCKS FOR.AID ║│                │                                                │                                  │
-╚════════════════╝└────────────────┘                                                ╰──────────────────────────────────╯
- waiting on MOTH ⠙
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 13  ▶ MOTH                                      ♪✖ no audio  ? help  q leave
+         ╭────────────────────────────────╮╭────────────────────────────────╮          ╭───────────────────────────────╮
+         │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │          │ NETLOG                        │
+         │ ¢1                          ●● ││ ¢3 ✖ASSN                    ●○ │          │ ✖ [YOU] LOSES INFLUENCE //    │
+         │ ASSN×1 CAPT×1                  ││ DUKE×1                         │          │   CAPTAIN EXPOSED             │
+         │                                ││                                │          │ ── TURN 10 · NULLBYTE ──      │
+         ╰────────────────────────────────╯╰────────────────────────────────╯          │ ▸ [NULLBYTE] SKIMS A CREDIT   │
+                  ╔═════════════════════════════════════════════════╗                  │   // INCOME +1¢               │
+                  ║ TREASURY 33¢ · DECK 5                           ║                  │ ── TURN 11 · VEX ──           │
+                  ║ > MOTH → TAX (claims DUKE)                      ║                  │ ▸ [VEX] SKIMS A CREDIT //     │
+                  ║ YOU CHALLENGES MOTH's DUKE                      ║                  │   INCOME +1¢                  │
+                  ║ PROVE IT OR LOSE IT                             ║                  │ ── TURN 12 · YOU ──           │
+╔════════════════╗║                                                 ║╭────────────────╮│ LAST ROUND // YOU             │
+║ ▶ MOTH         ║║ COURT TRACKER // revealed: face up · unseen: a… ║│   VEX          ││   steal→MOTH +2¢ · MOTH tax · │
+║ ¢3          ●● ║║  DUKE           ASSASSIN       CAPTAIN          ║│ ¢3 ✖CONT    ●○ ││   GHOSTWIRE assassinate→YOU · │
+║ DUKE×2         ║║ REVEALED 0/3   REVEALED 1/3   REVEALED 1/3      ║│ AMBS×1         ││   NULLBYTE income · VEX       │
+║ CHALLENGED! pr ║║ UNSEEN 2       UNSEEN 2       UNSEEN 2          ║│                ││   income                      │
+║                ║║                                                 ║│                ││ ▸ [YOU] OPENS AN AMBASSADOR   │
+║                ║║  AMBASSADOR     CONTESSA                        ║│                ││   CHANNEL // EXCHANGE         │
+╚════════════════╝║ REVEALED 0/3   REVEALED 1/3                     ║╰────────────────╯│ ⇄ (you draw DUKE +            │
+                  ║ UNSEEN 3       UNSEEN 2                         ║                  │   ASSASSIN)                   │
+                  ║                                                 ║                  │ ⇄ [YOU] RETURNS 2 CARDS       │
+                  ║                                                 ║                  │ ── TURN 13 · MOTH ──          │
+                  ║                                                 ║                  │ ▸ [MOTH] BROADCASTS DUKE      │
+                  ║                                                 ║                  │   SIGNAL // TAX +3¢           │
+                  ╚═════════════════════════════════════════════════╝                  │ ! [YOU] CALLS [MOTH]'S DUKE   │
+╔════════════════╗┌────────────────┐  RUNNER  seat 2                                   │   A LIE                       │
+║ DUKE          ◆║│ CAPTAIN       ▲│  ¢ 7                                              │                               │
+║     ▄▄▄▄▄▄     ║│═══▄▄   ▄▄▄▄▄▄  │  influence ●○                                     ╰───────────────────────────────╯
+║   ▄█▀▀▀▀▀▀█▄   ║│  ▐██▌ █▀▀▀▀▀▀█ │  coup armed (7)                                   ╭───────────────────────────────╮
+║   █  ▄▄ (◉)█═╗ ║│   ▀█▄▐▓▓▓▓▓▓▓▌ │                                                   │ [VEX] your firewall is made … │
+║   █   ▄▄   █ ║ ║│     ▀█▄▄▄▄▄▄▄█ │  you hold                                         │ // TRINITY lost the uplink. … │
+║   ▀█▄═══▄▄█▀ ║ ║│  ▄▓▓▓█▓▓▓▓▓▓▓█▄│  DUKE                                             │ [CASE] nobody believes that … │
+║  ▄▓▓▓█[¢]█▓▓▓▄ ║│  █▓▓▓█▓▓┃┃▓▓▓██│                                                   │ enter: chat · t: taunt        │
+║────────────────║│────────────────│                                                   │                               │
+║ TAX +3¢        ║│ ✖ FLATLINED    │                                                   │                               │
+║ BLOCKS FOR.AID ║│                │                                                   │                               │
+╚════════════════╝└────────────────┘                                                   ╰───────────────────────────────╯
+ You challenged MOTH's Duke. MOTH must flip a card: the Duke proves it. ⠙
  [t]TAUNT  [?]HELP
 ```
 
@@ -616,45 +702,45 @@ stripped). Click to expand.
 <summary><b>Losing an influence: pick the card to flip</b></summary>
 
 ```text
- NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 9                                               ♪✖ no audio  ? help  q leave
-        ╭────────────────────────────────╮╭────────────────────────────────╮        ╭──────────────────────────────────╮
-        │ ▶ GHOSTWIRE               HARD ││   NULLBYTE                EASY │        │ NETLOG                           │
-        │ ¢1                          ●● ││ ¢2                          ●○ │        │ ── TURN 5 · NULLBYTE ──          │
-        │ no cards exposed               ││ ✖ASSASN                        │        │ > [NULLBYTE] BROADCASTS DUKE     │
-        │ claims ASSASSIN                ││                                │        │   SIGNAL // TAX +3¢              │
-        ╰────────────────────────────────╯╰────────────────────────────────╯        │ ! [MOTH] CALLS [NULLBYTE]'S      │
-                        ╔══════════════════════════════════╗                        │   DUKE A LIE                     │
-                        ║ TREASURY 35¢ · DECK 5 · TURN 9   ║                        │ [NULLBYTE] WAS BLUFFING //       │
-                        ║ ──────────────────────────────── ║                        │   FLIPS ASSASSIN                 │
-                        ║ > GHOSTWIRE → ASSASSINATE YOU    ║                        │ ✖ [NULLBYTE] LOSES INFLUENCE     │
-                        ║ (claims ASSASSIN)                ║                        │   // ASSASSIN EXPOSED            │
-╭──────────────────────╮║                                  ║╭──────────────────────╮│ NULLBYTE'S TAX IS VOIDED         │
-│   MOTH        NORMAL │║ YOU LOSES AN INFLUENCE           ║│   VEX           HARD ││ ── TURN 6 · VEX ──               │
-│ ¢3                ●● │║ waiting on: YOU                  ║│ ¢2                ●○ ││ > [VEX] SKIMS A CREDIT //        │
-│ no cards exposed     │║                                  ║│ ✖CONTSA              ││   INCOME +1¢                     │
-│                      │║ COURT INTEL // face-up cards     ║│                      ││ ── TURN 7 · YOU ──               │
-│                      │║ DUKE    0/3+1  ASSASN  1/3       ║│                      ││ > [YOU] FLASHES A CAPTAIN        │
-│                      │║ CAPTAIN 0/3+1  AMBSDR  0/3       ║│                      ││   BADGE AT [MOTH] // STEAL 2¢    │
-╰──────────────────────╯║ CONTSA  1/3                      ║╰──────────────────────╯│ [YOU] LIFTS 2¢ FROM [MOTH]       │
-                        ║ (+n = in your hand)              ║                        │ ── TURN 8 · MOTH ──              │
-                        ║                                  ║                        │ > [MOTH] BROADCASTS DUKE         │
-                        ║                                  ║                        │   SIGNAL // TAX +3¢              │
-                        ║                                  ║                        │ +3¢ → [MOTH]                     │
-                        ║                                  ║                        │ ── TURN 9 · GHOSTWIRE ──         │
-                        ╚══════════════════════════════════╝                        │ > [GHOSTWIRE] RUNS ASSASSIN      │
-╔[1]═════════════╗╔[2]═════════════╗  RUNNER  seat 2                                │   PROTOCOL ON [YOU] // -3¢       │
-║ DUKE          ◆║║ CAPTAIN       ▲║  ¢ 7                                           │                                  │
-║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                                  ╰──────────────────────────────────╯
-║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║  coup armed (7)                                ╭──────────────────────────────────╮
-║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║                                                │ [VEX] your firewall is made of … │
-║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  you hold                                      │ // TRINITY lost the uplink. Sea… │
-║   ▀█▄═══▄▄█▀ ║ ║║  ▄▓▓▓█▓▓▓▓▓▓▓█▄║  DUKE + CAPTAIN                                │ [CASE] nobody believes that Duke │
-║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  █▓▓▓█▓▓┃┃▓▓▓██║                                                │ enter: chat · t: taunt           │
-║────────────────║║────────────────║                                                │                                  │
-║ TAX +3¢        ║║ STEAL 2¢       ║                                                │                                  │
-║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                                │                                  │
-╚════════════════╝╚════════════════╝                                                ╰──────────────────────────────────╯
- LOSE AN INFLUENCE: pick the card to flip
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 9  ▶ GHOSTWIRE                                  ♪✖ no audio  ? help  q leave
+         ╔════════════════════════════════╗╭────────────────────────────────╮          ╭───────────────────────────────╮
+         ║ ▶ GHOSTWIRE               HARD ║│   NULLBYTE                EASY │          │ NETLOG                        │
+         ║ ¢1                          ●● ║│ ¢2 ✖ASSN                    ●○ │          │ ✖ NULLBYTE'S TAX IS VOIDED    │
+         ║ ASSN×1 CAPT×1                  ║│ DUKE×1                         │          │ ── TURN 6 · VEX ──            │
+         ║ claims ASSASSIN                ║│                                │          │ ▸ [VEX] SKIMS A CREDIT //     │
+         ╚════════════════════════════════╝╰────────────────────────────────╯          │   INCOME +1¢                  │
+                  ╔═════════════════════════════════════════════════╗                  │ ── TURN 7 · YOU ──            │
+                  ║ TREASURY 35¢ · DECK 5                           ║                  │ LAST ROUND // YOU tax ·       │
+                  ║ > GHOSTWIRE → ASSASSINATE YOU (claims ASSASSIN) ║                  │   MOTH foreign aid (blocked   │
+                  ║ YOU LOSES AN INFLUENCE                          ║                  │   by YOU) · GHOSTWIRE         │
+                  ║                                                 ║                  │   steal→VEX (blocked by VEX)  │
+╭────────────────╮║ COURT TRACKER // revealed: face up · unseen: a… ║╭────────────────╮│   (bluff caught) +2¢ ·        │
+│   MOTH         │║  DUKE           ASSASSIN       CAPTAIN          ║│   VEX          ││   NULLBYTE tax (bluff caught) │
+│ ¢3          ●● │║ REVEALED 0/3   REVEALED 1/3   REVEALED 0/3      ║│ ¢2 ✖CONT    ●○ ││   · VEX income                │
+│ DUKE×1         │║ UNSEEN 2       UNSEEN 2       UNSEEN 2          ║│ AMBS×1         ││ ▸ [YOU] FLASHES A CAPTAIN     │
+│                │║                                                 ║│                ││   BADGE AT [MOTH] // STEAL 2¢ │
+│                │║  AMBASSADOR     CONTESSA                        ║│                ││ ¢ [YOU] LIFTS 2¢ FROM         │
+│                │║ REVEALED 0/3   REVEALED 1/3                     ║│                ││   [MOTH]                      │
+╰────────────────╯║ UNSEEN 3       UNSEEN 2                         ║╰────────────────╯│ ── TURN 8 · MOTH ──           │
+                  ║                                                 ║                  │ ▸ [MOTH] BROADCASTS DUKE      │
+                  ║                                                 ║                  │   SIGNAL // TAX +3¢           │
+                  ║                                                 ║                  │ ¢ +3¢ → [MOTH]                │
+                  ║                                                 ║                  │ ── TURN 9 · GHOSTWIRE ──      │
+                  ║                                                 ║                  │ ▸ [GHOSTWIRE] RUNS ASSASSIN   │
+                  ╚═════════════════════════════════════════════════╝                  │   PROTOCOL ON [YOU] // -3¢    │
+╔[1]═════════════╗╔[2]═════════════╗  RUNNER  seat 2                                   │                               │
+║ DUKE          ◆║║ CAPTAIN       ▲║  ¢ 7                                              │                               │
+║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                                     ╰───────────────────────────────╯
+║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║  coup armed (7)                                   ╭───────────────────────────────╮
+║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║                                                   │ [VEX] your firewall is made … │
+║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  you hold                                         │ // TRINITY lost the uplink. … │
+║   ▀█▄═══▄▄█▀ ║ ║║  ▄▓▓▓█▓▓▓▓▓▓▓█▄║  DUKE + CAPTAIN                                   │ [CASE] nobody believes that … │
+║╭─────────────────────────────────────────────────────────╮                           │ enter: chat · t: taunt        │
+║│ HINT Pick the card to give up. It stays face up for the │                           │                               │
+║│ rest of the game.                                       │                           │                               │
+║│ (hints: on/off in settings, esc)                        │                           │                               │
+╚╰─────────────────────────────────────────────────────────╯                           ╰───────────────────────────────╯
+ You lose an influence. Pick the card to give up; it stays face up for everyone.
  [1] DUKE  [2] CAPTAIN
 ```
 
@@ -664,45 +750,45 @@ stripped). Click to expand.
 <summary><b>Ambassador exchange: pick what to keep</b></summary>
 
 ```text
- NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 12                                              ♪✖ no audio  ? help  q leave
-        ╭────────────────────────────────╮╭────────────────────────────────╮        ╭──────────────────────────────────╮
-        │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │        │ NETLOG                           │
-        │ ¢1                          ●● ││ ¢3                          ●○ │        │ > [VEX] SKIMS A CREDIT //        │
-        │ no cards exposed               ││ ✖ASSASN                        │        │   INCOME +1¢                     │
-        │                                ││                                │        │ ── TURN 7 · YOU ──               │
-        ╰────────────────────────────────╯╰────────────────────────────────╯        │ > [YOU] FLASHES A CAPTAIN        │
-                        ╔══════════════════════════════════╗                        │   BADGE AT [MOTH] // STEAL 2¢    │
-                        ║ TREASURY 33¢ · DECK 3 · TURN 12  ║                        │ [YOU] LIFTS 2¢ FROM [MOTH]       │
-                        ║ ──────────────────────────────── ║                        │ ── TURN 8 · MOTH ──              │
-                        ║ > YOU → EXCHANGE (claims         ║                        │ > [MOTH] BROADCASTS DUKE         │
-                        ║ AMBASSADOR)                      ║                        │   SIGNAL // TAX +3¢              │
-╭──────────────────────╮║                                  ║╭──────────────────────╮│ +3¢ → [MOTH]                     │
-│   MOTH        NORMAL │║ YOU IS SWAPPING CARDS            ║│   VEX           HARD ││ ── TURN 9 · GHOSTWIRE ──         │
-│ ¢3                ●● │║ waiting on: YOU                  ║│ ¢3                ●○ ││ > [GHOSTWIRE] RUNS ASSASSIN      │
-│ no cards exposed     │║                                  ║│ ✖CONTSA              ││   PROTOCOL ON [YOU] // -3¢       │
-│                      │║ COURT INTEL // face-up cards     ║│                      ││ ✖ [YOU] LOSES INFLUENCE //       │
-│                      │║ DUKE    0/3+1  ASSASN  1/3       ║│                      ││   CAPTAIN EXPOSED                │
-│                      │║ CAPTAIN 1/3    AMBSDR  0/3       ║│                      ││ ── TURN 10 · NULLBYTE ──         │
-╰──────────────────────╯║ CONTSA  1/3                      ║╰──────────────────────╯│ > [NULLBYTE] SKIMS A CREDIT //   │
-                        ║ (+n = in your hand)              ║                        │   INCOME +1¢                     │
-                        ║                                  ║                        │ ── TURN 11 · VEX ──              │
-                        ║                                  ║                        │ > [VEX] SKIMS A CREDIT //        │
-                        ║                                  ║                        │   INCOME +1¢                     │
-                        ║                                  ║                        │ ── TURN 12 · YOU ──              │
-                        ╚══════════════════════════════════╝                        │ > [YOU] OPENS AN AMBASSADOR      │
-╔[1]═════════════╗╔[2]═════════════╗╔[3]═════════════╗  EXCHANGE                    │   CHANNEL // EXCHANGE            │
-║ DUKE          ◆║║ DUKE          ◆║║ ASSASSIN      ╳║  keep 1 of 3                 │ (you draw DUKE + ASSASSIN)       │
-║     ▄▄▄▄▄▄     ║║     ▄▄▄▄▄▄     ║║      ▄▄▄▄     ╱║  selected 1/1                ╰──────────────────────────────────╯
-║   ▄█▀▀▀▀▀▀█▄   ║║   ▄█▀▀▀▀▀▀█▄   ║║    ▄█▓▓▓▓█▄  ╱ ║                              ╭──────────────────────────────────╮
-║   █  ▄▄ (◉)█═╗ ║║   █  ▄▄ (◉)█═╗ ║║   █▓▀▀▀▀▀▀▓█╱  ║  1-3 toggle                  │ [VEX] your firewall is made of … │
-║   █   ▄▄   █ ║ ║║   █   ▄▄   █ ║ ║║   █ ══════ ▐▌  ║  enter confirm               │ // TRINITY lost the uplink. Sea… │
-║   ▀█▄═══▄▄█▀ ║ ║║   ▀█▄═══▄▄█▀ ║ ║║   ▀█▄    ▄█▀▌  ║                              │ [CASE] nobody believes that Duke │
-║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  ▄▓▓▓▓▓▓▓▓▓▓▄  ║                              │ enter: chat · t: taunt           │
-║────────────────║║────────────────║║────────────────║                              │                                  │
-║ TAX +3¢        ║║ TAX +3¢        ║║ PAY 3¢: STRIKE ║                              │                                  │
-║ ✓ KEEP         ║║ BLOCKS FOR.AID ║║ -1 INFLUENCE   ║                              │                                  │
-╚════════════════╝╚════════════════╝╚════════════════╝                              ╰──────────────────────────────────╯
- EXCHANGE: keep 1. selected: DUKE
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 12   ▶ YOUR TURN                                ♪✖ no audio  ? help  q leave
+         ╭────────────────────────────────╮╭────────────────────────────────╮          ╭───────────────────────────────╮
+         │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │          │ NETLOG                        │
+         │ ¢1                          ●● ││ ¢3 ✖ASSN                    ●○ │          │ ── TURN 8 · MOTH ──           │
+         │ ASSN×1 CAPT×1                  ││ DUKE×1                         │          │ ▸ [MOTH] BROADCASTS DUKE      │
+         │                                ││                                │          │   SIGNAL // TAX +3¢           │
+         ╰────────────────────────────────╯╰────────────────────────────────╯          │ ¢ +3¢ → [MOTH]                │
+                  ╔═════════════════════════════════════════════════╗                  │ ── TURN 9 · GHOSTWIRE ──      │
+                  ║ TREASURY 33¢ · DECK 3                           ║                  │ ▸ [GHOSTWIRE] RUNS ASSASSIN   │
+                  ║ > YOU → EXCHANGE (claims AMBASSADOR)            ║                  │   PROTOCOL ON [YOU] // -3¢    │
+                  ║ YOU IS SWAPPING CARDS                           ║                  │ ✖ [YOU] LOSES INFLUENCE //    │
+                  ║                                                 ║                  │   CAPTAIN EXPOSED             │
+╭────────────────╮║ COURT TRACKER // revealed: face up · unseen: a… ║╭────────────────╮│ ── TURN 10 · NULLBYTE ──      │
+│   MOTH         │║  DUKE           ASSASSIN       CAPTAIN          ║│   VEX          ││ ▸ [NULLBYTE] SKIMS A CREDIT   │
+│ ¢3          ●● │║ REVEALED 0/3   REVEALED 1/3   REVEALED 1/3      ║│ ¢3 ✖CONT    ●○ ││   // INCOME +1¢               │
+│ DUKE×1         │║ UNSEEN 1       UNSEEN 1       UNSEEN 2          ║│ AMBS×1         ││ ── TURN 11 · VEX ──           │
+│                │║                                                 ║│                ││ ▸ [VEX] SKIMS A CREDIT //     │
+│                │║  AMBASSADOR     CONTESSA                        ║│                ││   INCOME +1¢                  │
+│                │║ REVEALED 0/3   REVEALED 1/3                     ║│                ││ ── TURN 12 · YOU ──           │
+╰────────────────╯║ UNSEEN 3       UNSEEN 2                         ║╰────────────────╯│ LAST ROUND // YOU             │
+                  ║                                                 ║                  │   steal→MOTH +2¢ · MOTH tax · │
+                  ║                                                 ║                  │   GHOSTWIRE assassinate→YOU · │
+                  ║                                                 ║                  │   NULLBYTE income · VEX       │
+                  ║                                                 ║                  │   income                      │
+                  ║                                                 ║                  │ ▸ [YOU] OPENS AN AMBASSADOR   │
+                  ╚═════════════════════════════════════════════════╝                  │   CHANNEL // EXCHANGE         │
+╔[1]═════════════╗╔[2]═════════════╗╔[3]═════════════╗  EXCHANGE                       │ ⇄ (you draw DUKE +            │
+║ DUKE          ◆║║ DUKE          ◆║║ ASSASSIN      ╳║  keep 1 of 3                    │   ASSASSIN)                   │
+║     ▄▄▄▄▄▄     ║║     ▄▄▄▄▄▄     ║║      ▄▄▄▄     ╱║  selected 1/1                   ╰───────────────────────────────╯
+║   ▄█▀▀▀▀▀▀█▄   ║║   ▄█▀▀▀▀▀▀█▄   ║║    ▄█▓▓▓▓█▄  ╱ ║                                 ╭───────────────────────────────╮
+║   █  ▄▄ (◉)█═╗ ║║   █  ▄▄ (◉)█═╗ ║║   █▓▀▀▀▀▀▀▓█╱  ║  1-3 toggle                     │ [VEX] your firewall is made … │
+║   █   ▄▄   █ ║ ║║   █   ▄▄   █ ║ ║║   █ ══════ ▐▌  ║  enter confirm                  │ // TRINITY lost the uplink. … │
+║   ▀█▄═══▄▄█▀ ║ ║║   ▀█▄═══▄▄█▀ ║ ║║   ▀█▄    ▄█▀▌  ║                                 │ [CASE] nobody believes that … │
+║╭──────────────────────────────────────────────────────────╮                          │ enter: chat · t: taunt        │
+║│ HINT Exchange: choose which cards to keep (1-4, then     │                          │                               │
+║│ enter). Nobody else sees what you drew or returned.      │                          │                               │
+║│ (hints: on/off in settings, esc)                         │                          │                               │
+╚╰──────────────────────────────────────────────────────────╯                          ╰───────────────────────────────╯
+ EXCHANGE: keep 1 of 3. The rest go back into the deck. Only you see these.
  1-3 toggle · enter confirm · esc clear
 ```
 
@@ -712,45 +798,45 @@ stripped). Click to expand.
 <summary><b>Your elimination (the screen tears apart, in color)</b></summary>
 
 ```text
- NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 13                                              ♪✖ no audio  ? help  q leave
-        ╭────────────────────────────────╮╭────────────────────────────────╮        ╭──────────────────────────────────╮
-        │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │        │ NETLOG                           │
-        │ ¢4                          ●● ││ ¢4                          ●● │        │ ── TURN 5 · NULLBYTE ──          │
-        │ no cards exposed               ││ no cards exposed               │        │ > [NULLBYTE] SKIMS A CREDIT //   │
-        │                                ││                                │        │   INCOME +1¢                     │
-        ╰────────────────────────────────╯╰────────────────────────────────╯        │ ── TURN 6 · VEX ──               │
-                        ╔══════════════════════════════════╗                        │ > [VEX] SKIMS A CREDIT //        │
-                        ║ TREASURY 28¢ · DECK 5 · TURN 13  ║                        │   INCOME +1¢                     │
-                        ║ ──────────────────────────────── ║                        │ ── TURN 7 · YOU ──               │
-                        ║ > MOTH is choosing a move        ║                        │ > [YOU] SKIMS A CREDIT //        │
-                        ║                                  ║                        │   INCOME +1¢                     │
-╭──────────────────────╮║ waiting on: MOTH                 ║╭──────────────────────╮│ ── TURN 8 · MOTH ──              │
-│ ⠋ MOTH        NORMAL │║                                  ║│   VEX           HARD ││ > [MOTH] SKIMS A CREDIT //       │
-│ ¢4                ●● │║ COURT INTEL // face-up cards     ║│ ¢5                ●● ││   INCOME +1¢                     │
-│ no cards exposed     │║ DUKE    0/3+1  ASSASN  0/3       ║│ no cards exposed     ││ ── TURN 9 · GHOSTWIRE ──         │
-│ thinking...          │║ CAPTAIN 0/3+1  AMBSDR  0/3       ║│                      ││ > [GHOSTWIRE] SKIMS A CREDIT     │
-│                      │║ CONTSA  0/3                      ║│                      ││   // INCOME +1¢                  │
-│                      │║ (+n = in your hand)                                      ││ ── TURN 10 · NULLBYTE ──         │
-╰──────────────────────╯║                          F L A T L I * E $      ─────────╯│ > [NULLBYTE] SKIMS A CREDIT //   │
-                        ║                                                           │   INCOME +1¢                     │
-                        ║                                  ║                        │ ── TURN 11 · VEX ──              │
-                        ║                                  ║                        │ > [VEX] SKIMS A CREDIT //        │
-                        ║                                  ║                        │   INCOME +1¢                     │
-                        ║                                  ║                        │ ── TURN 12 · YOU ──              │
-                        ╚══════════════════════════════════╝                        │ > [YOU] SKIMS A CREDIT //        │
-╔════════════════╗╔════════════════╗  RUNNER  seat 2                                │   INCOME +1¢                     │
-║ DUKE          ◆║║ CAPTAIN       ▲║  ¢ 5                                           │ ── TURN 13 · MOTH ──             │
-║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                                  ╰──────────────────────────────────╯
- ║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║                                                ╭──────────────────────────────────
-║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║  you hold                                      │                                  │
-║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  DUKE + CAPTAIN                                │ enter: chat · t: taunt           │
-   ║   ▀█▄═══▄▄█▀ ║ ║║  ▄▓▓▓█▓▓▓▓▓▓▓█▄║                                                │
-║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  █▓▓▓█▓▓┃┃▓▓▓██║                                                │                                  │
-║────────────────║║────────────────║                                                │                                  │
-   ║ TAX +3¢        ║║ STEAL 2¢       ║                                                │
-║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                                │                                  │
-╚════════════════╝╚════════════════╝                                                ╰──────────────────────────────────╯
- waiting on MOTH ⠋
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 13  ▶ MOTH                                      ♪✖ no audio  ? help  q leave
+         ╭────────────────────────────────╮╭────────────────────────────────╮          ╭───────────────────────────────╮
+         │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │          │ NETLOG                        │
+         │ ¢4                          ●● ││ ¢4                          ●● │          │ ▸ [YOU] SKIMS A CREDIT //     │
+         │ no claims yet                  ││ no claims yet                  │          │   INCOME +1¢                  │
+         │                                ││                                │          │ ── TURN 8 · MOTH ──           │
+         ╰────────────────────────────────╯╰────────────────────────────────╯          │ ▸ [MOTH] SKIMS A CREDIT //    │
+                  ╔═════════════════════════════════════════════════╗                  │   INCOME +1¢                  │
+                  ║ TREASURY 28¢ · DECK 5                           ║                  │ ── TURN 9 · GHOSTWIRE ──      │
+                  ║ > MOTH is choosing a move                       ║                  │ ▸ [GHOSTWIRE] SKIMS A         │
+                  ║                                                 ║                  │   CREDIT // INCOME +1¢        │
+                  ║ COURT TRACKER // revealed: face up · unseen: a… ║                  │ ── TURN 10 · NULLBYTE ──      │
+╔════════════════╗║  DUKE           ASSASSIN       CAPTAIN          ║╭────────────────╮│ ▸ [NULLBYTE] SKIMS A CREDIT   │
+║ ▶ MOTH         ║║ REVEALED 0/3   REVEALED 0/3   REVEALED 0/3      ║│   VEX          ││   // INCOME +1¢               │
+║ ¢4          ●● ║║ UNSEEN 2       UNSEEN 3       UNSEEN 2          ║│ ¢5          ●● ││ ── TURN 11 · VEX ──           │
+║ no claims yet  ║║                                                 ║│ no claims yet  ││ ▸ [VEX] SKIMS A CREDIT //     │
+║ thinking...    ║║  AMBASSADOR     CONTESSA                        ║│                ││   INCOME +1¢                  │
+║                ║║ REVEALED 0/3   REVEALED 0/3                     ║│                ││ ── TURN 12 · YOU ──           │
+║                ║║ UNSEEN 3       UNSEEN 3                                           ││ LAST ROUND // YOU income ·    │
+╚════════════════╝║                                F L A T L I * E $      ────────────╯│   MOTH income · GHOSTWIRE     │
+                  ║                                                                    │   income · NULLBYTE income ·  │
+                  ║                                                 ║                  │   VEX income                  │
+                  ║                                                 ║                  │ ▸ [YOU] SKIMS A CREDIT //     │
+                  ║                                                 ║                  │   INCOME +1¢                  │
+                  ║                                                 ║                  │ ── TURN 13 · MOTH ──          │
+                  ╚═════════════════════════════════════════════════╝                  │                               │
+╔════════════════╗╔════════════════╗  RUNNER  seat 2                                   │                               │
+║ DUKE          ◆║║ CAPTAIN       ▲║  ¢ 5                                              │                               │
+║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                                     ╰───────────────────────────────╯
+ ║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║                                                   ╭───────────────────────────────
+║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║  you hold                                         │                               │
+║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  DUKE + CAPTAIN                                   │ enter: chat · t: taunt        │
+   ║   ▀█▄═══▄▄█▀ ║ ║║  ▄▓▓▓█▓▓▓▓▓▓▓█▄║                                                   │
+║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  █▓▓▓█▓▓┃┃▓▓▓██║                                                   │                               │
+║────────────────║║────────────────║                                                   │                               │
+   ║ TAX +3¢        ║║ STEAL 2¢       ║                                                   │
+║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                                   │                               │
+╚════════════════╝╚════════════════╝                                                   ╰───────────────────────────────╯
+ MOTH is choosing a move ⠋
  [t]TAUNT  [?]HELP
 ```
 
@@ -760,9 +846,6 @@ stripped). Click to expand.
 <summary><b>Help overlay (?)</b></summary>
 
 ```text
-
-
-
         ╭─────────────────────────────────────────────────────────────────────────────────╮
         │                                                                                 │
         │  CONTROLS                                                                       │
@@ -772,9 +855,11 @@ stripped). Click to expand.
         │   b       block (then pick the card if there's a choice)                        │
         │   p       pass                                                                  │
         │   1 / 2   pick a card when losing influence or proving a claim                  │
-        │   enter   chat    t  taunt menu                                                 │
-        │   m       mute    s  CRT scanlines                                              │
-        │   esc     cancel a choice    q  leave                                           │
+        │   tab     inspect a player: claims, history, face-up cards                      │
+        │   space   skip the current beat (solo)    P  pause (solo)                       │
+        │   enter   chat    t  taunt menu    pgup/pgdn  scroll the log                    │
+        │   m       mute    n  next track    s  CRT scanlines                             │
+        │   esc     cancel a choice, or open settings    q  leave                         │
         │   ?       this help                                                             │
         │                                                                                 │
         │  RULES IN ONE BREATH                                                            │
@@ -784,9 +869,13 @@ stripped). Click to expand.
         │  the bluffer a card. 7 coins buys a Coup; at 10 you must Coup. Lose             │
         │  both cards and you're out. Last runner standing wins.                          │
         │                                                                                 │
-        │  any key to close                                                               │
+        │  READING THE TABLE                                                              │
+        │  The bottom bar says what's happening, what you can do and what it              │
+        │  risks. The tracker in the middle counts each character: REVEALED is            │
+        │  face up, UNSEEN could be in a rival's hand or the deck. UNSEEN 0 means         │
+        │  any claim of it is a bluff. Badges on a rival's panel show what                │
+        │  they've claimed this game.                                                     │
         │                                                                                 │
-        ╰─────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 </details>
@@ -795,45 +884,45 @@ stripped). Click to expand.
 <summary><b>Victory</b></summary>
 
 ```text
- NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 13                                              ♪✖ no audio  ? help  q leave
-        ╭────────────────────────────────╮╭────────────────────────────────╮        ╭──────────────────────────────────╮
-        │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │        │ NETLOG                           │
-        │ ¢4                          ●● ││ ¢4                          ●● │        │ ── TURN 5 · NULLBYTE ──          │
-        │ no cards exposed               ││ no cards exposed               │        │ > [NULLBYTE] SKIMS A CREDIT //   │
-        │                                ││                                │        │   INCOME +1¢                     │
-        ╰────────────────────────────────╯╰────────────────────────────────╯        │ ── TURN 6 · VEX ──               │
-                        ╔══════════════════════════════════╗                        │ > [VEX] SKIMS A CREDIT //        │
-                        ║ TREASURY 28¢ · DECK 5 · TURN 13  ║                        │   INCOME +1¢                     │
-                        ║ ──────────────────────────────── ║                        │ ── TURN 7 · YOU ──               │
-                        ║ > MOTH is choosing a move        ║                        │ > [YOU] SKIMS A CREDIT //        │
-                        ║                                  ║                        │   INCOME +1¢                     │
-╭──────────────────────╮║ waiting on: MOTH                 ║╭──────────────────────╮│ ── TURN 8 · MOTH ──              │
-│ ⠋ MOTH        NORMAL │║                                  ║│   VEX           HARD ││ > [MOTH] SKIMS A CREDIT //       │
-│ ¢4                ●●╔══════════════════════════════════════════════════════════════════════════╗                     │
-│ no cards exposed    ║                                                                          ║GHOSTWIRE ──         │
-│ thinking...         ║       SYSTEM SEIZED                                                      ║] SKIMS A CREDIT     │
-│                     ║                                                                          ║+1¢                  │
-│                     ║    winner: RUNNER   turns: 13                                            ║ NULLBYTE ──         │
-╰─────────────────────║    your bluffs: 3 (1 caught)   challenges: 2 (2 won)                     ║ SKIMS A CREDIT //   │
-                      ║    blocks: 1   coins earned: 17   coups: 2                               ║                     │
-                      ║    replay saved: ~/.config/neoncoup/replays/20870101-000000-7K2Q.json    ║ VEX ──              │
-                      ║                                                                          ║S A CREDIT //        │
-                      ║    [r] rematch  [v] replay  [enter] lobby  [q] leave                     ║                     │
-                      ║                                                                          ║ YOU ──              │
-                      ╚══════════════════════════════════════════════════════════════════════════╝S A CREDIT //        │
-╔════════════════╗╔════════════════╗  RUNNER  seat 2                                │   INCOME +1¢                     │
-║ DUKE          ◆║║ CAPTAIN       ▲║  ¢ 5                                           │ ── TURN 13 · MOTH ──             │
-║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                                  ╰──────────────────────────────────╯
-║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║                                                ╭──────────────────────────────────╮
-║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║  you hold                                      │                                  │
-║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  DUKE + CAPTAIN                                │ enter: chat · t: taunt           │
-║   ▀█▄═══▄▄█▀ ║ ║║  ▄▓▓▓█▓▓▓▓▓▓▓█▄║                                                │                                  │
-║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  █▓▓▓█▓▓┃┃▓▓▓██║                                                │                                  │
-║────────────────║║────────────────║                                                │                                  │
-║ TAX +3¢        ║║ STEAL 2¢       ║                                                │                                  │
-║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                                │                                  │
-╚════════════════╝╚════════════════╝                                                ╰──────────────────────────────────╯
- waiting on MOTH ⠋
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 13  ▶ MOTH                                      ♪✖ no audio  ? help  q leave
+         ╭────────────────────────────────╮╭────────────────────────────────╮          ╭───────────────────────────────╮
+         │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │          │ NETLOG                        │
+         │ ¢4        ╔════════════════════════════════════════════════════════════════════════════╗IMS A CREDIT //     │
+         │ no claims ║                                                                            ║1¢                  │
+         │           ║       SYSTEM SEIZED                                                        ║· MOTH ──           │
+         ╰───────────║                                                                            ║KIMS A CREDIT //    │
+                  ╔══║    winner: RUNNER   turns: 13                                              ║1¢                  │
+                  ║ T║    your challenges: 2 (2 won)   blocks: 1   coins earned: 17   coups: 2    ║· GHOSTWIRE ──      │
+                  ║ >║                                                                            ║RE] SKIMS A         │
+                  ║  ║    THE CARDS // every hand, face up                                        ║/ INCOME +1¢        │
+                  ║ C║    VEX          DUKE        CONTESSA    bluffs: 2 got away, 0 caught       ║ · NULLBYTE ──      │
+╔════════════════╗║  ║    YOU          CONTESSA    CAPTAIN     played it straight                 ║E] SKIMS A CREDIT   │
+║ ▶ MOTH         ║║ R║    MOTH         AMBASSADOR  CAPTAIN     played it straight                 ║E +1¢               │
+║ ¢4          ●● ║║ U║    GHOSTWIRE    CAPTAIN     CONTESSA    played it straight                 ║ · VEX ──           │
+║ no claims yet  ║║  ║    NULLBYTE     DUKE        ASSASSIN    played it straight                 ║IMS A CREDIT //     │
+║ thinking...    ║║  ║                                                                            ║1¢                  │
+║                ║║ R║    KEY MOMENTS                                                             ║ · YOU ──           │
+║                ║║ U║    T6  VEX assassinated your CAPTAIN                                       ║ // YOU income ·    │
+╚════════════════╝║  ║    T7  MOTH called your DUKE: it was real                                  ║ome · GHOSTWIRE     │
+                  ║  ║    T8  NULLBYTE called MOTH's DUKE: it was real                            ║ NULLBYTE income ·  │
+                  ║  ║    T9  VEX called MOTH's AMBASSADOR: it was real                           ║me                  │
+                  ║  ║    T12 YOU couped MOTH                                                     ║IMS A CREDIT //     │
+                  ║  ║    T12 MOTH flatlined                                                      ║1¢                  │
+                  ║  ║    T22 NULLBYTE couped GHOSTWIRE                                           ║ · MOTH ──          │
+                  ╚══║    T23 GHOSTWIRE called VEX's ASSASSIN: it was real                        ║                    │
+╔════════════════╗╔══║    T23 GHOSTWIRE flatlined                                                 ║                    │
+║ DUKE          ◆║║ C║    T34 NULLBYTE couped VEX                                                 ║                    │
+║     ▄▄▄▄▄▄     ║║══║    T34 VEX flatlined                                                       ║────────────────────╯
+║   ▄█▀▀▀▀▀▀█▄   ║║  ║    T39 YOU couped NULLBYTE                                                 ║────────────────────╮
+║   █  ▄▄ (◉)█═╗ ║║  ║    T39 NULLBYTE flatlined                                                  ║                    │
+║   █   ▄▄   █ ║ ║║  ║    T39 YOU seized the city                                                 ║t · t: taunt        │
+║   ▀█▄═══▄▄█▀ ║ ║║  ║    replay saved: ~/.config/neoncoup/replays/20870101-000000-7K2Q.json      ║                    │
+║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  ║                                                                            ║                    │
+║────────────────║║──║    [r] rematch  [v] replay  [enter] lobby  [q] leave                       ║                    │
+║ TAX +3¢        ║║ S║                                                                            ║                    │
+║ BLOCKS FOR.AID ║║ B╚════════════════════════════════════════════════════════════════════════════╝                    │
+╚════════════════╝╚════════════════╝                                                   ╰───────────────────────────────╯
+ MOTH is choosing a move ⠋
  [t]TAUNT  [?]HELP
 ```
 
@@ -843,45 +932,45 @@ stripped). Click to expand.
 <summary><b>Defeat</b></summary>
 
 ```text
- NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 13                                              ♪✖ no audio  ? help  q leave
-        ╭────────────────────────────────╮╭────────────────────────────────╮        ╭──────────────────────────────────╮
-        │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │        │ NETLOG                           │
-        │ ¢4                          ●● ││ ¢4                          ●● │        │ ── TURN 5 · NULLBYTE ──          │
-        │ no cards exposed               ││ no cards exposed               │        │ > [NULLBYTE] SKIMS A CREDIT //   │
-        │                                ││                                │        │   INCOME +1¢                     │
-        ╰────────────────────────────────╯╰────────────────────────────────╯        │ ── TURN 6 · VEX ──               │
-                        ╔══════════════════════════════════╗                        │ > [VEX] SKIMS A CREDIT //        │
-                        ║ TREASURY 28¢ · DECK 5 · TURN 13  ║                        │   INCOME +1¢                     │
-                        ║ ──────────────────────────────── ║                        │ ── TURN 7 · YOU ──               │
-                        ║ > MOTH is choosing a move        ║                        │ > [YOU] SKIMS A CREDIT //        │
-                        ║                                  ║                        │   INCOME +1¢                     │
-╭──────────────────────╮║ waiting on: MOTH                 ║╭──────────────────────╮│ ── TURN 8 · MOTH ──              │
-│ ⠋ MOTH        NORMAL │║                                  ║│   VEX           HARD ││ > [MOTH] SKIMS A CREDIT //       │
-│ ¢4                ●●╔══════════════════════════════════════════════════════════════════════════╗                     │
-│ no cards exposed    ║                                                                          ║GHOSTWIRE ──         │
-│ thinking...         ║       CONNECTION TERMINATED                                              ║] SKIMS A CREDIT     │
-│                     ║                                                                          ║+1¢                  │
-│                     ║    winner: GHOSTWIRE   turns: 13                                         ║ NULLBYTE ──         │
-╰─────────────────────║    your bluffs: 3 (1 caught)   challenges: 2 (2 won)                     ║ SKIMS A CREDIT //   │
-                      ║    blocks: 1   coins earned: 17   coups: 2                               ║                     │
-                      ║    replay saved: ~/.config/neoncoup/replays/20870101-000000-7K2Q.json    ║ VEX ──              │
-                      ║                                                                          ║S A CREDIT //        │
-                      ║    [r] rematch  [v] replay  [enter] lobby  [q] leave                     ║                     │
-                      ║                                                                          ║ YOU ──              │
-                      ╚══════════════════════════════════════════════════════════════════════════╝S A CREDIT //        │
-╔════════════════╗╔════════════════╗  RUNNER  seat 2                                │   INCOME +1¢                     │
-║ DUKE          ◆║║ CAPTAIN       ▲║  ¢ 5                                           │ ── TURN 13 · MOTH ──             │
-║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                                  ╰──────────────────────────────────╯
-║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║                                                ╭──────────────────────────────────╮
-║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║  you hold                                      │                                  │
-║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  DUKE + CAPTAIN                                │ enter: chat · t: taunt           │
-║   ▀█▄═══▄▄█▀ ║ ║║  ▄▓▓▓█▓▓▓▓▓▓▓█▄║                                                │                                  │
-║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  █▓▓▓█▓▓┃┃▓▓▓██║                                                │                                  │
-║────────────────║║────────────────║                                                │                                  │
-║ TAX +3¢        ║║ STEAL 2¢       ║                                                │                                  │
-║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                                │                                  │
-╚════════════════╝╚════════════════╝                                                ╰──────────────────────────────────╯
- waiting on MOTH ⠋
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 13  ▶ MOTH                                      ♪✖ no audio  ? help  q leave
+         ╭────────────────────────────────╮╭────────────────────────────────╮          ╭───────────────────────────────╮
+         │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │          │ NETLOG                        │
+         │ ¢4        ╔════════════════════════════════════════════════════════════════════════════╗IMS A CREDIT //     │
+         │ no claims ║                                                                            ║1¢                  │
+         │           ║       CONNECTION TERMINATED                                                ║· MOTH ──           │
+         ╰───────────║                                                                            ║KIMS A CREDIT //    │
+                  ╔══║    winner: GHOSTWIRE   turns: 13                                           ║1¢                  │
+                  ║ T║    your challenges: 2 (2 won)   blocks: 1   coins earned: 17   coups: 2    ║· GHOSTWIRE ──      │
+                  ║ >║                                                                            ║RE] SKIMS A         │
+                  ║  ║    THE CARDS // every hand, face up                                        ║/ INCOME +1¢        │
+                  ║ C║    VEX          DUKE        CONTESSA    bluffs: 2 got away, 0 caught       ║ · NULLBYTE ──      │
+╔════════════════╗║  ║    YOU          CONTESSA    CAPTAIN     played it straight                 ║E] SKIMS A CREDIT   │
+║ ▶ MOTH         ║║ R║    MOTH         AMBASSADOR  CAPTAIN     played it straight                 ║E +1¢               │
+║ ¢4          ●● ║║ U║    GHOSTWIRE    CAPTAIN     CONTESSA    played it straight                 ║ · VEX ──           │
+║ no claims yet  ║║  ║    NULLBYTE     DUKE        ASSASSIN    played it straight                 ║IMS A CREDIT //     │
+║ thinking...    ║║  ║                                                                            ║1¢                  │
+║                ║║ R║    KEY MOMENTS                                                             ║ · YOU ──           │
+║                ║║ U║    T6  VEX assassinated your CAPTAIN                                       ║ // YOU income ·    │
+╚════════════════╝║  ║    T7  MOTH called your DUKE: it was real                                  ║ome · GHOSTWIRE     │
+                  ║  ║    T8  NULLBYTE called MOTH's DUKE: it was real                            ║ NULLBYTE income ·  │
+                  ║  ║    T9  VEX called MOTH's AMBASSADOR: it was real                           ║me                  │
+                  ║  ║    T12 YOU couped MOTH                                                     ║IMS A CREDIT //     │
+                  ║  ║    T12 MOTH flatlined                                                      ║1¢                  │
+                  ║  ║    T22 NULLBYTE couped GHOSTWIRE                                           ║ · MOTH ──          │
+                  ╚══║    T23 GHOSTWIRE called VEX's ASSASSIN: it was real                        ║                    │
+╔════════════════╗╔══║    T23 GHOSTWIRE flatlined                                                 ║                    │
+║ DUKE          ◆║║ C║    T34 NULLBYTE couped VEX                                                 ║                    │
+║     ▄▄▄▄▄▄     ║║══║    T34 VEX flatlined                                                       ║────────────────────╯
+║   ▄█▀▀▀▀▀▀█▄   ║║  ║    T39 YOU couped NULLBYTE                                                 ║────────────────────╮
+║   █  ▄▄ (◉)█═╗ ║║  ║    T39 NULLBYTE flatlined                                                  ║                    │
+║   █   ▄▄   █ ║ ║║  ║    T39 YOU seized the city                                                 ║t · t: taunt        │
+║   ▀█▄═══▄▄█▀ ║ ║║  ║    replay saved: ~/.config/neoncoup/replays/20870101-000000-7K2Q.json      ║                    │
+║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  ║                                                                            ║                    │
+║────────────────║║──║    [r] rematch  [v] replay  [enter] lobby  [q] leave                       ║                    │
+║ TAX +3¢        ║║ S║                                                                            ║                    │
+║ BLOCKS FOR.AID ║║ B╚════════════════════════════════════════════════════════════════════════════╝                    │
+╚════════════════╝╚════════════════╝                                                   ╰───────────────────────────────╯
+ MOTH is choosing a move ⠋
  [t]TAUNT  [?]HELP
 ```
 
@@ -913,7 +1002,7 @@ stripped). Click to expand.
                │   longest game         41 turns                                    │
                │                                                                    │
                │   wins by mode: solo 2/2 · host 0/1                                │
-               │   last run: 2026-10-26 14:36                                       │
+               │   last run: 2026-10-27 00:19                                       │
                │                                                                    │
                │   esc back                                                         │
                │                                                                    │
@@ -926,45 +1015,45 @@ stripped). Click to expand.
 <summary><b>Taunt menu (t)</b></summary>
 
 ```text
- NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 13                                              ♪✖ no audio  ? help  q leave
-        ╭────────────────────────────────╮╭────────────────────────────────╮        ╭──────────────────────────────────╮
-        │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │        │ NETLOG                           │
-        │ ¢4                          ●● ││ ¢4                          ●● │        │ ── TURN 5 · NULLBYTE ──          │
-        │ no cards exposed               ││ no cards exposed               │        │ > [NULLBYTE] SKIMS A CREDIT //   │
-        │                                ││                                │        │   INCOME +1¢                     │
-        ╰────────────────────────────────╯╰────────────────────────────────╯        │ ── TURN 6 · VEX ──               │
-                        ╔══════════════════════════════════╗                        │ > [VEX] SKIMS A CREDIT //        │
-                        ║ TREASURY 28¢ · DECK 5 · TURN 13  ║                        │   INCOME +1¢                     │
-                        ║ ──────────────────────────────── ║                        │ ── TURN 7 · YOU ──               │
-                        ║ > MOTH is choosing a move        ║                        │ > [YOU] SKIMS A CREDIT //        │
-                        ║                                  ║                        │   INCOME +1¢                     │
-╭──────────────────────╮║ waiting on: MOT╭───────────────────────────────────╮─────╮│ ── TURN 8 · MOTH ──              │
-│ ⠋ MOTH        NORMAL │║                │                                   │HARD ││ > [MOTH] SKIMS A CREDIT //       │
-│ ¢4                ●● │║ COURT INTEL // │  TAUNT                            │  ●● ││   INCOME +1¢                     │
-│ no cards exposed     │║ DUKE    0/3+1  │                                   │     ││ ── TURN 9 · GHOSTWIRE ──         │
-│ thinking...          │║ CAPTAIN 0/3+1  │  [1] gg, choom                    │     ││ > [GHOSTWIRE] SKIMS A CREDIT     │
-│                      │║ CONTSA  0/3    │  [2] nice bluff... or was it?     │     ││   // INCOME +1¢                  │
-│                      │║ (+n = in your h│  [3] i have the Duke. obviously.  │     ││ ── TURN 10 · NULLBYTE ──         │
-╰──────────────────────╯║                │  [4] your firewall is showing     │─────╯│ > [NULLBYTE] SKIMS A CREDIT //   │
-                        ║                │  [5] say goodbye to your credits  │      │   INCOME +1¢                     │
-                        ║                │  [6] challenge me. i dare you.    │      │ ── TURN 11 · VEX ──              │
-                        ║                │  [7] pure static                  │      │ > [VEX] SKIMS A CREDIT //        │
-                        ║                │  [8] see you in the next run      │      │   INCOME +1¢                     │
-                        ║                │                                   │      │ ── TURN 12 · YOU ──              │
-                        ╚════════════════│  any other key to close           │      │ > [YOU] SKIMS A CREDIT //        │
-╔════════════════╗╔════════════════╗  RUN│                                   │      │   INCOME +1¢                     │
-║ DUKE          ◆║║ CAPTAIN       ▲║  ¢ 5╰───────────────────────────────────╯      │ ── TURN 13 · MOTH ──             │
-║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                                  ╰──────────────────────────────────╯
-║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║                                                ╭──────────────────────────────────╮
-║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║  you hold                                      │                                  │
-║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  DUKE + CAPTAIN                                │ enter: chat · t: taunt           │
-║   ▀█▄═══▄▄█▀ ║ ║║  ▄▓▓▓█▓▓▓▓▓▓▓█▄║                                                │                                  │
-║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  █▓▓▓█▓▓┃┃▓▓▓██║                                                │                                  │
-║────────────────║║────────────────║                                                │                                  │
-║ TAX +3¢        ║║ STEAL 2¢       ║                                                │                                  │
-║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                                │                                  │
-╚════════════════╝╚════════════════╝                                                ╰──────────────────────────────────╯
- waiting on MOTH ⠋
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 13  ▶ MOTH                                      ♪✖ no audio  ? help  q leave
+         ╭────────────────────────────────╮╭────────────────────────────────╮          ╭───────────────────────────────╮
+         │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │          │ NETLOG                        │
+         │ ¢4                          ●● ││ ¢4                          ●● │          │ ▸ [YOU] SKIMS A CREDIT //     │
+         │ no claims yet                  ││ no claims yet                  │          │   INCOME +1¢                  │
+         │                                ││                                │          │ ── TURN 8 · MOTH ──           │
+         ╰────────────────────────────────╯╰────────────────────────────────╯          │ ▸ [MOTH] SKIMS A CREDIT //    │
+                  ╔═════════════════════════════════════════════════╗                  │   INCOME +1¢                  │
+                  ║ TREASURY 28¢ · DECK 5                           ║                  │ ── TURN 9 · GHOSTWIRE ──      │
+                  ║ > MOTH is choosing a move                       ║                  │ ▸ [GHOSTWIRE] SKIMS A         │
+                  ║                                                 ║                  │   CREDIT // INCOME +1¢        │
+                  ║ COURT TRACKER // revealed: face up · unseen: a… ║                  │ ── TURN 10 · NULLBYTE ──      │
+╔════════════════╗║  DUKE           ASSAS╭───────────────────────────────────╮────────╮│ ▸ [NULLBYTE] SKIMS A CREDIT   │
+║ ▶ MOTH         ║║ REVEALED 0/3   REVEAL│                                   │        ││   // INCOME +1¢               │
+║ ¢4          ●● ║║ UNSEEN 2       UNSEEN│  TAUNT                            │     ●● ││ ── TURN 11 · VEX ──           │
+║ no claims yet  ║║                      │                                   │ms yet  ││ ▸ [VEX] SKIMS A CREDIT //     │
+║ thinking...    ║║  AMBASSADOR     CONTE│  [1] gg, choom                    │        ││   INCOME +1¢                  │
+║                ║║ REVEALED 0/3   REVEAL│  [2] nice bluff... or was it?     │        ││ ── TURN 12 · YOU ──           │
+║                ║║ UNSEEN 3       UNSEEN│  [3] i have the Duke. obviously.  │        ││ LAST ROUND // YOU income ·    │
+╚════════════════╝║                      │  [4] your firewall is showing     │────────╯│   MOTH income · GHOSTWIRE     │
+                  ║                      │  [5] say goodbye to your credits  │         │   income · NULLBYTE income ·  │
+                  ║                      │  [6] challenge me. i dare you.    │         │   VEX income                  │
+                  ║                      │  [7] pure static                  │         │ ▸ [YOU] SKIMS A CREDIT //     │
+                  ║                      │  [8] see you in the next run      │         │   INCOME +1¢                  │
+                  ║                      │                                   │         │ ── TURN 13 · MOTH ──          │
+                  ╚══════════════════════│  any other key to close           │         │                               │
+╔════════════════╗╔════════════════╗  RUN│                                   │         │                               │
+║ DUKE          ◆║║ CAPTAIN       ▲║  ¢ 5╰───────────────────────────────────╯         │                               │
+║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                                     ╰───────────────────────────────╯
+║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║                                                   ╭───────────────────────────────╮
+║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║  you hold                                         │                               │
+║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  DUKE + CAPTAIN                                   │ enter: chat · t: taunt        │
+║   ▀█▄═══▄▄█▀ ║ ║║  ▄▓▓▓█▓▓▓▓▓▓▓█▄║                                                   │                               │
+║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  █▓▓▓█▓▓┃┃▓▓▓██║                                                   │                               │
+║────────────────║║────────────────║                                                   │                               │
+║ TAX +3¢        ║║ STEAL 2¢       ║                                                   │                               │
+║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                                   │                               │
+╚════════════════╝╚════════════════╝                                                   ╰───────────────────────────────╯
+ MOTH is choosing a move ⠋
  [t]TAUNT  [?]HELP
 ```
 
@@ -974,45 +1063,45 @@ stripped). Click to expand.
 <summary><b>--ascii mode</b></summary>
 
 ```text
- NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 3                                               ~x no audio  ? help  q leave
-        +--------------------------------++--------------------------------+        +----------------------------------+
-        | . GHOSTWIRE               HARD || . NULLBYTE                EASY |        | NETLOG                           |
-        | c2                          oo || c2                          oo |        | // GAME 3 // 5 RUNNERS //        |
-        | no cards exposed               || no cards exposed               |        |   JACKED IN                      |
-        | thinking...                    || thinking...                    |        | -- TURN 1 . VEX --               |
-        +--------------------------------++--------------------------------+        | > [VEX] SKIMS A CREDIT //        |
-                        +----------------------------------+                        |   INCOME +1c                     |
-                        | TREASURY 36c . DECK 5 . TURN 3   |                        | -- TURN 2 . YOU --               |
-                        | -------------------------------- |                        | > [YOU] BROADCASTS DUKE SIGNAL   |
-                        | > MOTH -> STEAL YOU (claims      |                        |   // TAX +3c                     |
-                        | CAPTAIN)                         |                        | +3c > [YOU]                      |
-+----------------------+|                                  |+----------------------+| -- TURN 3 . MOTH --              |
-| > MOTH        NORMAL || CHALLENGE WINDOW OPEN            || . VEX           HARD || > [MOTH] FLASHES A CAPTAIN       |
-| c2                oo || ################........  5.2s   || c3                oo ||   BADGE AT [YOU] // STEAL 2c     |
-| no cards exposed     || waiting on: VEX, YOU, GHOSTWIRE, || no cards exposed     ||                                  |
-| claims CAPTAIN       || NULLBYTE                         || thinking...          ||                                  |
-|                      ||                                  ||                      ||                                  |
-|                      || COURT INTEL // face-up cards     ||                      ||                                  |
-+----------------------+| DUKE    0/3+1  ASSASN  0/3       |+----------------------+|                                  |
-                        | CAPTAIN 0/3+1  AMBSDR  0/3       |                        |                                  |
-                        | CONTSA  0/3                      |                        |                                  |
-                        | (+n = in your hand)              |                        |                                  |
-                        |                                  |                        |                                  |
-                        |                                  |                        |                                  |
-                        +----------------------------------+                        |                                  |
-+----------------++----------------+  RUNNER  seat 2                                |                                  |
-| DUKE          *|| CAPTAIN       ^|  c 5                                           |                                  |
-|     ______     ||===__   ______  |  influence oo                                  +----------------------------------+
-|   _#""""""#_   ||  ]##[ #""""""# |                                                +----------------------------------+
-|   #  __ (@)#=+ ||   "#_]%%%%%%%[ |  you hold                                      |                                  |
-|   #   __   # | ||     "#_______# |  DUKE + CAPTAIN                                | enter: chat . t: taunt           |
-|   "#_===__#" | ||  _%%%#%%%%%%%#_|                                                |                                  |
-|  _%%%#[c]#%%%_ ||  #%%%#%%||%%%##|                                                |                                  |
-|----------------||----------------|                                                |                                  |
-| TAX +3c        || STEAL 2c       |                                                |                                  |
-| BLOCKS FOR.AID || BLOCKS STEAL   |                                                |                                  |
-+----------------++----------------+                                                +----------------------------------+
- MOTH claims CAPTAIN for STEAL. call the bluff?
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 3  > MOTH                                       ~x no audio  ? help  q leave
+         +--------------------------------++--------------------------------+          +-------------------------------+
+         | . GHOSTWIRE               HARD || . NULLBYTE                EASY |          | NETLOG                        |
+         | c2                          oo || c2                          oo |          | // GAME 3 // 5 RUNNERS //     |
+         | no claims yet                  || no claims yet                  |          |   JACKED IN                   |
+         | thinking...                    || thinking...                    |          | -- TURN 1 . VEX --            |
+         +--------------------------------++--------------------------------+          | > [VEX] SKIMS A CREDIT //     |
+                  +-------------------------------------------------+                  |   INCOME +1c                  |
+                  | TREASURY 36c . DECK 5                           |                  | -- TURN 2 . YOU --            |
+                  | > MOTH -> STEAL YOU (claims CAPTAIN)            |                  | LAST ROUND // VEX income      |
+                  | CHALLENGE WINDOW OPEN                           |                  | > [YOU] BROADCASTS DUKE       |
+                  | #########################..............  5.2s   |                  |   SIGNAL // TAX +3c           |
++----------------+|                                                 |+----------------+| c +3c > [YOU]                 |
+| > MOTH         || COURT TRACKER // revealed: face up . unseen: a~ || . VEX          || -- TURN 3 . MOTH --           |
+| c2          oo ||  DUKE           ASSASSIN       CAPTAIN          || c3          oo || > [MOTH] FLASHES A CAPTAIN    |
+| CAPTx1         || REVEALED 0/3   REVEALED 0/3   REVEALED 0/3      || no claims yet  ||   BADGE AT [YOU] // STEAL 2c  |
+| claims CAPTAIN || UNSEEN 2       UNSEEN 3       UNSEEN 2          || thinking...    ||                               |
+|                ||                                                 ||                ||                               |
+|                ||  AMBASSADOR     CONTESSA                        ||                ||                               |
++----------------+| REVEALED 0/3   REVEALED 0/3                     |+----------------+|                               |
+                  | UNSEEN 3       UNSEEN 3                         |                  |                               |
+                  |                                                 |                  |                               |
+                  |                                                 |                  |                               |
+                  |                                                 |                  |                               |
+                  |                                                 |                  |                               |
+                  +-------------------------------------------------+                  |                               |
++----------------++----------------+  RUNNER  seat 2                                   |                               |
+| DUKE          *|| CAPTAIN       ^|  c 5                                              |                               |
+|     ______     ||===__   ______  |  influence oo                                     +-------------------------------+
+|   _#""""""#_   ||  ]##[ #""""""# |                                                   +-------------------------------+
+|   #  __ (@)#=+ ||   "#_]%%%%%%%[ |  you hold                                         |                               |
+|+--------------------------------------------------------+                            | enter: chat . t: taunt        |
+|| HINT Someone claimed a character. Challenge (c) if you |                            |                               |
+|| think they're bluffing: if they can show it, YOU       |                            |                               |
+|| lose an influence. The tracker's UNSEEN 0 means a      |                            |                               |
+|| sure bluff.                                            |                            |                               |
+|| (hints: on/off in settings, esc)                       |                            |                               |
+++--------------------------------------------------------+                            +-------------------------------+
+ MOTH claims Captain to steal 2 coins from you.  [C] Challenge (wrong: you lose 1)  [P] Pass  ######... 6s
  [c]CHALLENGE  [p]PASS  [t]TAUNT  [?]HELP
 ```
 
@@ -1046,43 +1135,43 @@ stripped). Click to expand.
 <summary><b>Replay viewer: every hand face up</b></summary>
 
 ```text
- REPLAY  2087-01-01 02:00  step 48/72  turn 10                                                      paused
-TREASURY 27¢ · DECK 5                                                         ╭────────────────────────────────────────╮
-> VEX: passes                                                                 │ NETLOG                                 │
-  on the table: NULLBYTE → TAX (claims DUKE)                                  │   +3¢ → [RUNNER]                       │
-                                                                              │ ── TURN 3 · MOTH ──                    │
-VEX               ┌──────────┐┌──────────┐                                    │ > [MOTH] BROADCASTS DUKE SIGNAL // TA… │
-¢0                │ ASSASSIN╳││ CONTESSA✧│                                    │   +3¢ → [MOTH]                         │
-                  │  ▄█▓▓█▄ ╱││   ▐◆  ◆▌ │                                    │ ── TURN 4 · GHOSTWIRE ──               │
-                  │  █ ════▐▌││ ▐░▒▓░▒▓░▌│                                    │ > [GHOSTWIRE] FLASHES A CAPTAIN BADGE… │
-                  │KILL 3¢   ││BLK KILL  │                                    │ ! [RUNNER] CALLS [GHOSTWIRE]'S CAPTAI… │
-                  │-1 INFL   ││          │                                    │   [GHOSTWIRE] SHOWS CAPTAIN // CLAIM … │
-                  └──────────┘└──────────┘                                    │   [GHOSTWIRE] RESHUFFLES AND DRAWS A … │
-RUNNER            ┌──────────┐┌──────────┐                                    │ ✖ [RUNNER] LOSES INFLUENCE // CAPTAIN… │
-¢6                │ DUKE    ◆││ CAPTAIN ▲│                                    │   [GHOSTWIRE] LIFTS 2¢ FROM [RUNNER]   │
-                  │ ▄█▀▀(◉)═╗││══▄ █▀▀▀▀█│                                    │ ── TURN 5 · NULLBYTE ──                │
-                  │ ▓▓█[¢]█▓▓││ ▐█▌▐▓▓▓▓▌│                                    │ > [NULLBYTE] OPENS AN AMBASSADOR CHAN… │
-                  │TAX +3¢   ││✖ LOST    │                                    │   [NULLBYTE] PULLS 2 CARDS FROM THE C… │
-                  │BLK AID   ││          │                                    │   [NULLBYTE] RETURNS 2 CARDS           │
-                  └──────────┘└──────────┘                                    │ ── TURN 6 · VEX ──                     │
-MOTH              ┌──────────┐┌──────────┐                                    │ > [VEX] RUNS ASSASSIN PROTOCOL ON [MO… │
-¢8                │ AMBASSAD◎││ ASSASSIN╳│                                    │ ✖ [MOTH] LOSES INFLUENCE // AMBASSADO… │
-                  │  ░▒▓▀▀▓▒░││  ▄█▓▓█▄ ╱│                                    │ ── TURN 7 · RUNNER ──                  │
-                  │  ▐═[▓▓]═▌││  █ ════▐▌│                                    │ > [RUNNER] BROADCASTS DUKE SIGNAL // … │
-                  │✖ LOST    ││KILL 3¢   │                                    │   +3¢ → [RUNNER]                       │
-                  │          ││-1 INFL   │                                    │ ── TURN 8 · MOTH ──                    │
-                  └──────────┘└──────────┘                                    │ > [MOTH] BROADCASTS DUKE SIGNAL // TA… │
-GHOSTWIRE         ┌──────────┐┌──────────┐                                    │ ! [NULLBYTE] CALLS [MOTH]'S DUKE A LIE │
-¢7                │ CONTESSA✧││ CONTESSA✧│                                    │   [MOTH] SHOWS DUKE // CLAIM VERIFIED  │
-                  │   ▐◆  ◆▌ ││   ▐◆  ◆▌ │                                    │   [MOTH] RESHUFFLES AND DRAWS A FRESH… │
-                  │ ▐░▒▓░▒▓░▌││ ▐░▒▓░▒▓░▌│                                    │ ✖ [NULLBYTE] LOSES INFLUENCE // CAPTA… │
-                  │BLK KILL  ││BLK KILL  │                                    │   +3¢ → [MOTH]                         │
-                  │          ││          │                                    │ ── TURN 9 · GHOSTWIRE ──               │
-                  └──────────┘└──────────┘                                    │ > [GHOSTWIRE] BROADCASTS DUKE SIGNAL … │
-▶ NULLBYTE        ┌──────────┐┌──────────┐                                    │   +3¢ → [GHOSTWIRE]                    │
-¢2                │ CAPTAIN ▲││ DUKE    ◆│                                    │ ── TURN 10 · NULLBYTE ──               │
-                  │══▄ █▀▀▀▀█││ ▄█▀▀(◉)═╗│                                    │ > [NULLBYTE] BROADCASTS DUKE SIGNAL /… │
-                  │ ▐█▌▐▓▓▓▓▌││ ▓▓█[¢]█▓▓│                                    ╰────────────────────────────────────────╯
+ REPLAY  2087-01-01 02:00  step 88/133  turn 20                                                     paused
+TREASURY 31¢ · DECK 5                                                         ╭────────────────────────────────────────╮
+> VEX: INCOME                                                                 │ NETLOG                                 │
+                                                                              │ [MOTH] RESHUFFLES AND DRAWS A FRESH C… │
+VEX               ┌──────────┐┌──────────┐                                    │ [VEX] LOSES INFLUENCE // CONTESSA EXP… │
+¢3                │ ASSASSIN╳││ CONTESSA✧│                                    │ BLOCK HOLDS // GHOSTWIRE'S STEAL FIZZ… │
+                  │  ▄█▓▓█▄ ╱││   ▐◆  ◆▌ │                                    │ ── TURN 10 · NULLBYTE ──               │
+                  │  █ ════▐▌││ ▐░▒▓░▒▓░▌│                                    │ [NULLBYTE] BROADCASTS DUKE SIGNAL // … │
+                  │KILL 3¢   ││✖ LOST    │                                    │ +3¢ → [NULLBYTE]                       │
+                  │-1 INFL   ││          │                                    │ ── TURN 11 · VEX ──                    │
+                  └──────────┘└──────────┘                                    │ [VEX] SKIMS A CREDIT // INCOME +1¢     │
+▶ RUNNER          ┌──────────┐┌──────────┐                                    │ ── TURN 12 · RUNNER ──                 │
+¢1                │ CONTESSA✧││ CAPTAIN ▲│                                    │ [RUNNER] LAUNCHES A COUP ON [MOTH] //… │
+                  │   ▐◆  ◆▌ ││══▄ █▀▀▀▀█│                                    │ [MOTH] LOSES INFLUENCE // CAPTAIN EXP… │
+                  │ ▐░▒▓░▒▓░▌││ ▐█▌▐▓▓▓▓▌│                                    │ [MOTH] FLATLINED // OUT OF THE GAME (… │
+                  │BLK KILL  ││✖ LOST    │                                    │ ── TURN 13 · GHOSTWIRE ──              │
+                  │          ││          │                                    │ [GHOSTWIRE] FLASHES A CAPTAIN BADGE A… │
+                  └──────────┘└──────────┘                                    │ [GHOSTWIRE] LIFTS 2¢ FROM [VEX]        │
+MOTH              ┌──────────┐┌──────────┐                                    │ ── TURN 14 · NULLBYTE ──               │
+FLATLINED         │ AMBASSAD◎││ CAPTAIN ▲│                                    │ [NULLBYTE] BROADCASTS DUKE SIGNAL // … │
+                  │  ░▒▓▀▀▓▒░││══▄ █▀▀▀▀█│                                    │ +3¢ → [NULLBYTE]                       │
+                  │  ▐═[▓▓]═▌││ ▐█▌▐▓▓▓▓▌│                                    │ ── TURN 15 · VEX ──                    │
+                  │✖ LOST    ││✖ LOST    │                                    │ [VEX] SKIMS A CREDIT // INCOME +1¢     │
+                  │          ││          │                                    │ ── TURN 16 · RUNNER ──                 │
+                  └──────────┘└──────────┘                                    │ [RUNNER] OPENS AN AMBASSADOR CHANNEL … │
+GHOSTWIRE         ┌──────────┐┌──────────┐                                    │ [RUNNER] PULLS 2 CARDS FROM THE COURT  │
+¢6                │ CAPTAIN ▲││ CONTESSA✧│                                    │ [RUNNER] RETURNS 2 CARDS               │
+                  │══▄ █▀▀▀▀█││   ▐◆  ◆▌ │                                    │ ── TURN 17 · GHOSTWIRE ──              │
+                  │ ▐█▌▐▓▓▓▓▌││ ▐░▒▓░▒▓░▌│                                    │ [GHOSTWIRE] FLASHES A CAPTAIN BADGE A… │
+                  │STEAL 2¢  ││BLK KILL  │                                    │ [GHOSTWIRE] LIFTS 2¢ FROM [NULLBYTE]   │
+                  │BLK STEAL ││          │                                    │ ── TURN 18 · NULLBYTE ──               │
+                  └──────────┘└──────────┘                                    │ [NULLBYTE] BROADCASTS DUKE SIGNAL // … │
+NULLBYTE          ┌──────────┐┌──────────┐                                    │ +3¢ → [NULLBYTE]                       │
+¢9                │ DUKE    ◆││ ASSASSIN╳│                                    │ ── TURN 19 · VEX ──                    │
+                  │ ▄█▀▀(◉)═╗││  ▄█▓▓█▄ ╱│                                    │ [VEX] SKIMS A CREDIT // INCOME +1¢     │
+                  │ ▓▓█[¢]█▓▓││  █ ════▐▌│                                    │ ── TURN 20 · RUNNER ──                 │
+                  │TAX +3¢   ││✖ LOST    │                                    ╰────────────────────────────────────────╯
 ←/→ step · ↑/↓ ±10 · space play/pause · +/- speed · home/end · esc back
 ```
 
@@ -1092,45 +1181,45 @@ GHOSTWIRE         ┌──────────┐┌───────�
 <summary><b>Tutorial intro</b></summary>
 
 ```text
- NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 1                                               ♪✖ no audio  ? help  q leave
-        ╭────────────────────────────────╮╭────────────────────────────────╮        ╭──────────────────────────────────╮
-        │ ⠋ GHOSTWIRE               HARD ││ ⠋ NULLBYTE                EASY │        │ NETLOG                           │
-        │ ¢2                          ●● ││ ¢2                          ●● │        │ // GAME 3 // 5 RUNNERS //        │
-        │ no cards exposed               ││ no cards exposed               │        │   JACKED IN                      │
-        │ thinking...                    ││ thinking...                    │        │ ── TURN 1 · VEX ──               │
-        ╰────────────────────────────────╯╰────────────────────────────────╯        │ > [VEX] BROADCASTS DUKE SIGNAL   │
-                        ╔══════════════════════════════════╗                        │   // TAX +3¢                     │
-                        ║ TREASURY 40¢ · DECK 5 · TURN 1   ║                        │                                  │
-                        ║ ──────────────────────────────── ║                        │                                  │
-                        ║ > VEX → TAX (claims DUKE)        ║                        │                                  │
-                        ║                                  ║                        │                                  │
-╭──────────────────╔════════════════════════════════════════════════════════════════════════════════╗                  │
-│ ⠋ MOTH        NOR║                                                                                ║                  │
-│ ¢2               ║   WELCOME TO THE CON                                                           ║                  │
-│ no cards exposed ║                                                                                ║                  │
-│ thinking...      ║   Every runner holds 2 face-down cards: their INFLUENCE.                       ║                  │
-│                  ║   Lose both and you're out. Last runner standing takes the city.               ║                  │
-│                  ║                                                                                ║                  │
-╰──────────────────║   On your turn you take one action. Some actions belong to a character:        ║                  │
-                   ║   you may claim ANY character, whether you hold it or not.                     ║                  │
-                   ║   Others can CHALLENGE the claim, or BLOCK it with a character of their own.   ║                  │
-                   ║                                                                                ║                  │
-                   ║   Your cards are at the bottom. The log is on the right.                       ║                  │
-                   ║                                                                                ║                  │
-                   ║   press enter to start                                                         ║                  │
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 1  ▶ VEX                                        ♪✖ no audio  ? help  q leave
+         ╭────────────────────────────────╮╭────────────────────────────────╮          ╭───────────────────────────────╮
+         │ ⠋ GHOSTWIRE               HARD ││ ⠋ NULLBYTE                EASY │          │ NETLOG                        │
+         │ ¢2                          ●● ││ ¢2                          ●● │          │ // GAME 3 // 5 RUNNERS //     │
+         │ no claims yet                  ││ no claims yet                  │          │   JACKED IN                   │
+         │ thinking...                    ││ thinking...                    │          │ ── TURN 1 · VEX ──            │
+         ╰────────────────────────────────╯╰────────────────────────────────╯          │ ▸ [VEX] BROADCASTS DUKE       │
+                  ╔═════════════════════════════════════════════════╗                  │   SIGNAL // TAX +3¢           │
+                  ║ TREASURY 40¢ · DECK 5                           ║                  │                               │
+                  ║ > VEX → TAX (claims DUKE)                       ║                  │                               │
+                  ║ CHALLENGE WINDOW OPEN                           ║                  │                               │
+                  ║ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░  5.2s   ║                  │                               │
+╭────────────────╮║╔════════════════════════════════════════════════════════════════════════════════╗                  │
+│ ⠋ MOTH         │║║                                                                                ║                  │
+│ ¢2          ●● │║║   WELCOME TO THE CON                                                           ║                  │
+│ no claims yet  │║║                                                                                ║                  │
+│ thinking...    │║║   Every runner holds 2 face-down cards: their INFLUENCE.                       ║                  │
+│                │║║   Lose both and you're out. Last runner standing takes the city.               ║                  │
+│                │║║                                                                                ║                  │
+╰────────────────╯║║   On your turn you take one action. Some actions belong to a character:        ║                  │
+                  ║║   you may claim ANY character, whether you hold it or not.                     ║                  │
+                  ║║   Others can CHALLENGE the claim, or BLOCK it with a character of their own.   ║                  │
+                  ║║                                                                                ║                  │
+                  ║║   Your cards are at the bottom. The log is on the right.                       ║                  │
+                  ║║                                                                                ║                  │
+                  ╚║   press enter to start                                                         ║                  │
 ╔════════════════╗╔║                                                                                ║                  │
 ║ DUKE          ◆║║╚════════════════════════════════════════════════════════════════════════════════╝                  │
-║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                                  ╰──────────────────────────────────╯
-║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║                                                ╭──────────────────────────────────╮
-║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║  you hold                                      │                                  │
-║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  DUKE + CAPTAIN                                │ enter: chat · t: taunt           │
-║   ▀█▄═══▄▄█▀ ║ ║║  ▄▓▓▓█▓▓▓▓▓▓▓█▄║                                                │                                  │
-║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  █▓▓▓█▓▓┃┃▓▓▓██║                                                │                                  │
-║────────────────║║────────────────║                                                │                                  │
-║ TAX +3¢        ║║ STEAL 2¢       ║                                                │                                  │
-║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                                │                                  │
-╚════════════════╝╚════════════════╝                                                ╰──────────────────────────────────╯
- VEX claims DUKE for TAX. call the bluff?
+║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                                     ╰───────────────────────────────╯
+║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║                                                   ╭───────────────────────────────╮
+║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║  you hold                                         │                               │
+║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  DUKE + CAPTAIN                                   │ enter: chat · t: taunt        │
+║   ▀█▄═══▄▄█▀ ║ ║║  ▄▓▓▓█▓▓▓▓▓▓▓█▄║                                                   │                               │
+║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  █▓▓▓█▓▓┃┃▓▓▓██║                                                   │                               │
+║────────────────║║────────────────║                                                   │                               │
+║ TAX +3¢        ║║ STEAL 2¢       ║                                                   │                               │
+║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                                   │                               │
+╚════════════════╝╚════════════════╝                                                   ╰───────────────────────────────╯
+ VEX claims Duke to take 3 coins.  [C] Challenge (if VEX has a Duke, you lose an influence)  [P] Pass  ██████░░░ 6s
  [c]CHALLENGE  [p]PASS  [t]TAUNT  [?]HELP
 ```
 
@@ -1140,46 +1229,243 @@ GHOSTWIRE         ┌──────────┐┌───────�
 <summary><b>Tutorial coach</b></summary>
 
 ```text
- NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 1                                               ♪✖ no audio  ? help  q leave
-        ╭────────────────────────────────╮╭────────────────────────────────╮        ╭──────────────────────────────────╮
-        │ ⠋ GHOSTWIRE               HARD ││ ⠋ NULLBYTE                EASY │        │ NETLOG                           │
-        │ ¢2                          ●● ││ ¢2                          ●● │        │ // GAME 3 // 5 RUNNERS //        │
-        │ no cards exposed               ││ no cards exposed               │        │   JACKED IN                      │
-        │ thinking...                    ││ thinking...                    │        │ ── TURN 1 · VEX ──               │
-        ╰────────────────────────────────╯╰────────────────────────────────╯        │ > [VEX] BROADCASTS DUKE SIGNAL   │
-  ╭────────────────────────────────────────────────────────────────────────────╮    │   // TAX +3¢                     │
-  │  COACH // SMELL THE BLUFF                                                  │    │                                  │
-  │  VEX claims DUKE. MOTH just showed confidence in a Duke and you hold one.  │    │                                  │
-  │  VEX never acted like a Duke before. Call it: press c to CHALLENGE.        │    │                                  │
-  ╰────────────────────────────────────────────────────────────────────────────╯    │                                  │
-╭──────────────────────╮║ CHALLENGE WINDOW OPEN            ║╭──────────────────────╮│                                  │
-│ ⠋ MOTH        NORMAL │║ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░  5.2s   ║│ ▶ VEX           HARD ││                                  │
-│ ¢2                ●● │║ waiting on: YOU, MOTH,           ║│ ¢2                ●● ││                                  │
-│ no cards exposed     │║ GHOSTWIRE, NULLBYTE              ║│ no cards exposed     ││                                  │
-│ thinking...          │║                                  ║│ claims DUKE          ││                                  │
-│                      │║ COURT INTEL // face-up cards     ║│                      ││                                  │
-│                      │║ DUKE    0/3+1  ASSASN  0/3       ║│                      ││                                  │
-╰──────────────────────╯║ CAPTAIN 0/3+1  AMBSDR  0/3       ║╰──────────────────────╯│                                  │
-                        ║ CONTSA  0/3                      ║                        │                                  │
-                        ║ (+n = in your hand)              ║                        │                                  │
-                        ║                                  ║                        │                                  │
-                        ║                                  ║                        │                                  │
-                        ║                                  ║                        │                                  │
-                        ╚══════════════════════════════════╝                        │                                  │
-╔════════════════╗╔════════════════╗  RUNNER  seat 2                                │                                  │
-║ DUKE          ◆║║ CAPTAIN       ▲║  ¢ 2                                           │                                  │
-║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                                  ╰──────────────────────────────────╯
-║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║                                                ╭──────────────────────────────────╮
-║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║  you hold                                      │                                  │
-║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  DUKE + CAPTAIN                                │ enter: chat · t: taunt           │
-║   ▀█▄═══▄▄█▀ ║ ║║  ▄▓▓▓█▓▓▓▓▓▓▓█▄║                                                │                                  │
-║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  █▓▓▓█▓▓┃┃▓▓▓██║                                                │                                  │
-║────────────────║║────────────────║                                                │                                  │
-║ TAX +3¢        ║║ STEAL 2¢       ║                                                │                                  │
-║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                                │                                  │
-╚════════════════╝╚════════════════╝                                                ╰──────────────────────────────────╯
- VEX claims DUKE for TAX. call the bluff?
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 1  ▶ VEX                                        ♪✖ no audio  ? help  q leave
+         ╭────────────────────────────────╮╭────────────────────────────────╮          ╭───────────────────────────────╮
+         │ ⠋ GHOSTWIRE               HARD ││ ⠋ NULLBYTE                EASY │          │ NETLOG                        │
+         │ ¢2                          ●● ││ ¢2                          ●● │          │ // GAME 3 // 5 RUNNERS //     │
+         │ no claims yet                  ││ no claims yet                  │          │   JACKED IN                   │
+         │ thinking...                    ││ thinking...                    │          │ ── TURN 1 · VEX ──            │
+         ╰────────────────────────────────╯╰────────────────────────────────╯          │ ▸ [VEX] BROADCASTS DUKE       │
+  ╭────────────────────────────────────────────────────────────────────────────╮       │   SIGNAL // TAX +3¢           │
+  │  COACH // SMELL THE BLUFF                                                  │       │                               │
+  │  VEX claims DUKE. MOTH just showed confidence in a Duke and you hold one.  │       │                               │
+  │  VEX never acted like a Duke before. Call it: press c to CHALLENGE.        │       │                               │
+  ╰────────────────────────────────────────────────────────────────────────────╯       │                               │
+╭────────────────╮║                                                 ║╔════════════════╗│                               │
+│ ⠋ MOTH         │║ COURT TRACKER // revealed: face up · unseen: a… ║║ ▶ VEX          ║│                               │
+│ ¢2          ●● │║  DUKE           ASSASSIN       CAPTAIN          ║║ ¢2          ●● ║│                               │
+│ no claims yet  │║ REVEALED 0/3   REVEALED 0/3   REVEALED 0/3      ║║ DUKE×1         ║│                               │
+│ thinking...    │║ UNSEEN 2       UNSEEN 3       UNSEEN 2          ║║ claims DUKE    ║│                               │
+│                │║                                                 ║║                ║│                               │
+│                │║  AMBASSADOR     CONTESSA                        ║║                ║│                               │
+╰────────────────╯║ REVEALED 0/3   REVEALED 0/3                     ║╚════════════════╝│                               │
+                  ║ UNSEEN 3       UNSEEN 3                         ║                  │                               │
+                  ║                                                 ║                  │                               │
+                  ║                                                 ║                  │                               │
+                  ║                                                 ║                  │                               │
+                  ║                                                 ║                  │                               │
+                  ╚═════════════════════════════════════════════════╝                  │                               │
+╔════════════════╗╔════════════════╗  RUNNER  seat 2                                   │                               │
+║ DUKE          ◆║║ CAPTAIN       ▲║  ¢ 2                                              │                               │
+║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                                     ╰───────────────────────────────╯
+║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║                                                   ╭───────────────────────────────╮
+║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║  you hold                                         │                               │
+║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  DUKE + CAPTAIN                                   │ enter: chat · t: taunt        │
+║   ▀█▄═══▄▄█▀ ║ ║║  ▄▓▓▓█▓▓▓▓▓▓▓█▄║                                                   │                               │
+║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  █▓▓▓█▓▓┃┃▓▓▓██║                                                   │                               │
+║────────────────║║────────────────║                                                   │                               │
+║ TAX +3¢        ║║ STEAL 2¢       ║                                                   │                               │
+║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                                   │                               │
+╚════════════════╝╚════════════════╝                                                   ╰───────────────────────────────╯
+ VEX claims Duke to take 3 coins.  [C] Challenge (if VEX has a Duke, you lose an influence)  [P] Pass  ██████░░░ 6s
  [c]CHALLENGE  [p]PASS  [t]TAUNT  [?]HELP
+```
+
+</details>
+
+<details>
+<summary><b>A move being announced: banner, target marked, the rest dimmed</b></summary>
+
+```text
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 1  ▶ VEX                                        ♪✖ no audio  ? help  q leave
+         ╭────────────────────────────────╮╭────────────────────────────────╮          ╭───────────────────────────────╮
+         │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │          │ NETLOG                        │
+         │ ¢2                          ●● ││ ¢2                          ●● │          │ // GAME 3 // 5 RUNNERS //     │
+         │ no claims yet                  ││ no claims yet                  │          │   JACKED IN                   │
+         │                                ││                                │          │ ── TURN 1 · VEX ──            │
+         ╰────────────────────────────────╯╰────────────────────────────────╯          │ ▸ [VEX] FLASHES A CAPTAIN     │
+                  ╔═════════════════════════════════════════════════╗                  │   BADGE AT [MOTH] // STEAL 2¢ │
+                  ║ TREASURY 40¢ · DECK 5                           ║                  │                               │
+                  ║ > VEX → STEAL MOTH (claims CAPTAIN)             ║                  │                               │
+                  ║                                                 ║                  │                               │
+                  ║ COURT TRACKER // revealed: face up · unseen: a… ║                  │                               │
+╭────────────────╮║  DUKE           ASSASSIN       CAPTAIN          ║╔════════════════╗│                               │
+│   MOTH         │║ REVEALED 0/3   REVEALED 0/3   REVEALED 0/3      ║║ ▶ VEX          ║│                               │
+│ ¢2          ●● │║╔══════════════════════════════════════════════╗ ║║ ¢2          ●● ║│                               │
+│ no claims yet  │║║                                              ║ ║║ CAPT×1         ║│                               │
+│ ◀ TARGET       │║║    VEX ▸ CLAIMS CAPTAIN ▸ STEAL 2¢ ▸ MOTH    ║ ║║ claims CAPTAIN ║│                               │
+│                │║║                                              ║ ║║                ║│                               │
+│                │║╚══════════════════════════════════════════════╝ ║║                ║│                               │
+╰────────────────╯║                                                 ║╚════════════════╝│                               │
+                  ║                                                 ║                  │                               │
+                  ║                                                 ║                  │                               │
+                  ║                                                 ║                  │                               │
+                  ║                                                 ║                  │                               │
+                  ║                                                 ║                  │                               │
+                  ╚═════════════════════════════════════════════════╝                  │                               │
+╔════════════════╗╔════════════════╗  RUNNER  seat 2                                   │                               │
+║ DUKE          ◆║║ CAPTAIN       ▲║  ¢ 2                                              │                               │
+║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                                     ╰───────────────────────────────╯
+║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║                                                   ╭───────────────────────────────╮
+║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║  you hold                                         │                               │
+║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  DUKE + CAPTAIN                                   │ enter: chat · t: taunt        │
+║   ▀█▄═══▄▄█▀ ║ ║║  ▄▓▓▓█▓▓▓▓▓▓▓█▄║                                                   │                               │
+║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  █▓▓▓█▓▓┃┃▓▓▓██║                                                   │                               │
+║────────────────║║────────────────║                                                   │                               │
+║ TAX +3¢        ║║ STEAL 2¢       ║                                                   │                               │
+║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                                   │                               │
+╚════════════════╝╚════════════════╝                                                   ╰───────────────────────────────╯
+ VEX ▸ CLAIMS CAPTAIN ▸ STEAL 2¢ ▸ MOTH
+ [t]TAUNT  [?]HELP
+```
+
+</details>
+
+<details>
+<summary><b>The card tracker at 160x45, after a bluff was caught</b></summary>
+
+```text
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 2   ▶ YOUR TURN                                                                         ♪✖ no audio  ? help  q leave
+                        ╭────────────────────────────────╮╭────────────────────────────────╮                        ╭──────────────────────────────────────────╮
+                        │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │                        │ NETLOG                                   │
+                        │ ¢2                          ●● ││ ¢2                          ●● │                        │ // GAME 3 // 5 RUNNERS // JACKED IN      │
+                        │ no claims yet                  ││ no claims yet                  │                        │ ── TURN 1 · VEX ──                       │
+                        │                                ││                                │                        │ ▸ [VEX] BROADCASTS DUKE SIGNAL // TAX    │
+                        ╰────────────────────────────────╯╰────────────────────────────────╯                        │   +3¢                                    │
+                   ╔════════════════════════════════════════════════════════════════════════════╗                   │ ! [YOU] CALLS [VEX]'S DUKE A LIE         │
+                   ║ > YOUR TURN · choose an action below                                       ║                   │ ✖ [VEX] WAS BLUFFING // FLIPS ASSASSIN   │
+                   ║                                                                            ║                   │ ✖ [VEX] LOSES INFLUENCE // ASSASSIN      │
+                   ║ COURT TRACKER // revealed: face up · unseen: anywhere but your hand        ║                   │   EXPOSED                                │
+                   ║ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   ╭────╮  ║                   │ ✖ VEX'S TAX IS VOIDED                    │
+                   ║ │ DUKE    ◆│ │ ASSASSIN╳│ │ CAPTAIN ▲│ │ AMBASSAD◎│ │ CONTESSA✧│  ╭│▒░▒░│  ║                   │ ── TURN 2 · YOU ──                       │
+                   ║ │ ▄█▀▀(◉)═╗│ │  ▄█▓▓█▄ ╱│ │══▄ █▀▀▀▀█│ │  ░▒▓▀▀▓▒░│ │   ▐◆  ◆▌ │  ││░▒░▒│  ║                   │ LAST ROUND // VEX tax (bluff caught)     │
+                   ║ │ ▓▓█[¢]█▓▓│ │  █ ════▐▌│ │ ▐█▌▐▓▓▓▓▌│ │  ▐═[▓▓]═▌│ │ ▐░▒▓░▒▓░▌│  ╰╰────╯  ║                   │                                          │
+╭─────────────────╮║ │TAX +3¢   │ │KILL 3¢   │ │STEAL 2¢  │ │SWAP 2    │ │BLK KILL  │ DECK   5  ║╭─────────────────╮│                                          │
+│   MOTH          │║ │BLK AID   │ │-1 INFL   │ │BLK STEAL │ │BLK STEAL │ │          │           ║│   VEX      HARD ││                                          │
+│ ¢2           ●● │║ └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘ TREASURY  ║│ ¢2 ✖ASSN     ●○ ││                                          │
+│ no claims yet   │║ REVEALED 0/3 REVEALED 1/3 REVEALED 0/3 REVEALED 0/3 REVEALED 0/3      40¢  ║│ DUKE×1          ││                                          │
+│                 │║ UNSEEN 2     UNSEEN 2     UNSEEN 2     UNSEEN 3     UNSEEN 3               ║│                 ││                                          │
+│                 │║                                                                            ║│                 ││                                          │
+│                 │║                                                                            ║│                 ││                                          │
+╰─────────────────╯║                                                                            ║╰─────────────────╯│                                          │
+                   ║                                                                            ║                   │                                          │
+                   ║                                                                            ║                   │                                          │
+                   ║                                                                            ║                   │                                          │
+                   ║                                                                            ║                   │                                          │
+                   ║                                                                            ║                   │                                          │
+                   ║                                                                            ║                   │                                          │
+                   ║                                                                            ║                   │                                          │
+                   ╚════════════════════════════════════════════════════════════════════════════╝                   │                                          │
+╔════════════════╗╔════════════════╗  RUNNER  seat 2                                                                │                                          │
+║ DUKE          ◆║║ CAPTAIN       ▲║  ¢ 2                                                                           │                                          │
+║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                                                                  ╰──────────────────────────────────────────╯
+║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║                                                                                ╭──────────────────────────────────────────╮
+║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║  you hold                                                                      │                                          │
+║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  DUKE + CAPTAIN                                                                │ enter: chat · t: taunt                   │
+║╭─────────────────────────────────────────────────────────╮                                                        │                                          │
+║│ HINT Your turn: pick an action with 1-8. Green ones you │                                                        │                                          │
+║│ can back up; magenta~ ones would be bluffs. Anyone      │                                                        │                                          │
+║│ may challenge a claim.                                  │                                                        │                                          │
+║│ (hints: on/off in settings, esc)                        │                                                        │                                          │
+╚╰─────────────────────────────────────────────────────────╯                                                        ╰──────────────────────────────────────────╯
+ YOUR TURN with 2¢. Green: you hold it. Magenta~: a bluff. Coup needs 7¢ · Assassinate needs 3¢
+ [1]INCOME  [2]AID  [3]COUP  [4]TAX  [5]ASSASSIN  [6]STEAL  [7]SWAP~  [t]TAUNT  [?]HELP
+```
+
+</details>
+
+<details>
+<summary><b>Inspect (tab): one player's claims and history</b></summary>
+
+```text
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 2   ▶ YOUR TURN                                 ♪✖ no audio  ? help  q leave
+         ╭────────────────────────────────╮╭────────────────────────────────╮          ╭───────────────────────────────╮
+         │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │          │ NETLOG                        │
+         │ ¢2                          ●● ││ ¢2                          ●● │          │ // GAME 3 // 5 RUNNERS //     │
+         │ no claims yet                  ││ no claims yet                  │          │   JACKED IN                   │
+         │                                ││                                │          │ ── TURN 1 · VEX ──            │
+         ╰────────────────────────────────╯╰────────────────────────────────╯          │ ▸ [VEX] BROADCASTS DUKE       │
+                  ╔═════════════════════════════════════════════════╗                  │   SIGNAL // TAX +3¢           │
+                  ║ TREASURY 40¢ · DECK 5                           ║                  │ ! [YOU] CALLS [VEX]'S DUKE    │
+                  ║ > YOUR TURN · choose an action below            ║                  │   A LIE                       │
+                  ║                                                 ║                  │ ✖ [VEX] WAS BLUFFING //       │
+                  ║ COURT TRACKER // revealed: face up · unseen: a… ║                  │   FLIPS ASSASSIN              │
+╭────────────────╮║  DUKE           ASSAS╭───────────────────────────────────╮────────╮│ ✖ [VEX] LOSES INFLUENCE //    │
+│   MOTH         │║ REVEALED 0/3   REVEAL│                                   │        ││   ASSASSIN EXPOSED            │
+│ ¢2          ●● │║ UNSEEN 2       UNSEEN│   INSPECT // VEX  HARD bot        │N    ●○ ││ ✖ VEX'S TAX IS VOIDED         │
+│ no claims yet  │║                      │   2¢ · influence 1                │        ││ ── TURN 2 · YOU ──            │
+│                │║  AMBASSADOR     CONTE│   revealed  ASSASSIN              │        ││ LAST ROUND // VEX tax         │
+│                │║ REVEALED 0/3   REVEAL│   claims    DUKE×1                │        ││   (bluff caught)              │
+│                │║ UNSEEN 3       UNSEEN│                                   │        ││                               │
+╰────────────────╯║                      │   HISTORY                         │────────╯│                               │
+                  ║                      │   T1  TAX (claims DUKE)           │         │                               │
+                  ║                      │   T1  CHALLENGED by YOU           │         │                               │
+                  ║                      │       ✖ CAUGHT BLUFFING           │         │                               │
+                  ║                      │   T1  LOST ASSASSIN               │         │                               │
+                  ║                      │                                   │         │                               │
+                  ╚══════════════════════│   tab: next player · esc: close   │         │                               │
+╔════════════════╗╔════════════════╗  RUN│                                   │         │                               │
+║ DUKE          ◆║║ CAPTAIN       ▲║  ¢ 2╰───────────────────────────────────╯         │                               │
+║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                                     ╰───────────────────────────────╯
+║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║                                                   ╭───────────────────────────────╮
+║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║  you hold                                         │                               │
+║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  DUKE + CAPTAIN                                   │ enter: chat · t: taunt        │
+║   ▀█▄═══▄▄█▀ ║ ║║  ▄▓▓▓█▓▓▓▓▓▓▓█▄║                                                   │                               │
+║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  █▓▓▓█▓▓┃┃▓▓▓██║                                                   │                               │
+║────────────────║║────────────────║                                                   │                               │
+║ TAX +3¢        ║║ STEAL 2¢       ║                                                   │                               │
+║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                                   │                               │
+╚════════════════╝╚════════════════╝                                                   ╰───────────────────────────────╯
+ YOUR TURN with 2¢. Green: you hold it. Magenta~: a bluff. Coup needs 7¢ · Assassinate needs 3¢
+ [1]INCOME  [2]AID  [3]COUP  [4]TAX  [5]ASSASSIN  [6]STEAL  [7]SWAP~  [t]TAUNT  [?]HELP
+```
+
+</details>
+
+<details>
+<summary><b>Settings overlay (esc)</b></summary>
+
+```text
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 2   ▶ YOUR TURN                                 ♪✖ no audio  ? help  q leave
+         ╭────────────────────────────────╮╭────────────────────────────────╮          ╭───────────────────────────────╮
+         │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │          │ NETLOG                        │
+         │ ¢2                          ●● ││ ¢2                          ●● │          │ // GAME 3 // 5 RUNNERS //     │
+         │ no claims yet                  ││ no claims yet                  │          │   JACKED IN                   │
+         │                                ││                                │          │ ── TURN 1 · VEX ──            │
+         ╰────────────────────────────────╯╰────────────────────────────────╯          │ ▸ [VEX] BROADCASTS DUKE       │
+                  ╔═════════════════════════════════════════════════╗                  │   SIGNAL // TAX +3¢           │
+                  ║ TREASURY 40¢ · DECK 5                           ║                  │ ! [YOU] CALLS [VEX]'S DUKE    │
+                  ║ > YOUR TURN · choose an action below            ║                  │   A LIE                       │
+                  ║     ╭──────────────────────────────────────────────────────────────────────╮ WAS BLUFFING //       │
+                  ║ COUR│                                                                      │ ASSASSIN              │
+╭────────────────╮║  DUK│   SETTINGS                                                           │ LOSES INFLUENCE //    │
+│   MOTH         │║ REVE│   saved to this session only                                         │SIN EXPOSED            │
+│ ¢2          ●● │║ UNSE│                                                                      │ TAX IS VOIDED         │
+│ no claims yet  │║     │   ▶ Speed           ◀ RELAXED  (the host's choice) ▶                 │ 2 · YOU ──            │
+│                │║  AMB│     Hints           ◀ ON ▶                                           │UND // VEX tax         │
+│                │║ REVE│     Reduce motion   ◀ OFF ▶                                          │f caught)              │
+│                │║ UNSE│     Palette         ◀ NEON ▶                                         │                       │
+╰────────────────╯║     │     Master volume   ◀ 60% ▶                                          │                       │
+                  ║     │     Music volume    ◀ 80% ▶                                          │                       │
+                  ║     │     SFX volume      ◀ 100% ▶                                         │                       │
+                  ║     │     Muted           ◀ OFF ▶                                          │                       │
+                  ║     │     CRT scanlines   ◀ OFF ▶                                          │                       │
+                  ║     │                                                                      │                       │
+                  ╚═════│   The host picks the speed for everyone at an online table.          │                       │
+╔════════════════╗╔═════│                                                                      │                       │
+║ DUKE          ◆║║ CAPT│   ↑↓ field · ←→ change · enter to close · esc back                   │                       │
+║     ▄▄▄▄▄▄     ║║═══▄▄│                                                                      │───────────────────────╯
+║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██╰──────────────────────────────────────────────────────────────────────╯───────────────────────╮
+║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║  you hold                                         │                               │
+║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  DUKE + CAPTAIN                                   │ enter: chat · t: taunt        │
+║   ▀█▄═══▄▄█▀ ║ ║║  ▄▓▓▓█▓▓▓▓▓▓▓█▄║                                                   │                               │
+║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  █▓▓▓█▓▓┃┃▓▓▓██║                                                   │                               │
+║────────────────║║────────────────║                                                   │                               │
+║ TAX +3¢        ║║ STEAL 2¢       ║                                                   │                               │
+║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                                   │                               │
+╚════════════════╝╚════════════════╝                                                   ╰───────────────────────────────╯
+ YOUR TURN with 2¢. Green: you hold it. Magenta~: a bluff. Coup needs 7¢ · Assassinate needs 3¢
+ [1]INCOME  [2]AID  [3]COUP  [4]TAX  [5]ASSASSIN  [6]STEAL  [7]SWAP~  [t]TAUNT  [?]HELP
 ```
 
 </details>

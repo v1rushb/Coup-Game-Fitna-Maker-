@@ -87,6 +87,21 @@ func (d *Device) SetMuted(m bool) {
 	d.synth.SetMuted(m, v)
 }
 
+// SetMusicVolume implements Player.
+func (d *Device) SetMusicVolume(v float64) { d.synth.SetMusicVolume(v) }
+
+// SetSFXVolume implements Player.
+func (d *Device) SetSFXVolume(v float64) { d.synth.SetSFXVolume(v) }
+
+// NextTrack implements Player.
+func (d *Device) NextTrack() { d.synth.NextTrack() }
+
+// SetIntensity implements Player.
+func (d *Device) SetIntensity(tense bool) { d.synth.SetIntensity(tense) }
+
+// Notices implements Player.
+func (d *Device) Notices() <-chan string { return d.synth.Notices() }
+
 // Muted implements Player.
 func (d *Device) Muted() bool {
 	d.mu.Lock()

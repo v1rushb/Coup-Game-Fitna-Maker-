@@ -37,7 +37,23 @@ type Config struct {
 	SkipBoot bool `json:"skip_boot,omitempty"`
 	// Tokens maps room codes to rejoin tokens, so a crashed client can reclaim its seat.
 	Tokens map[string]Token `json:"tokens,omitempty"`
+	// Speed is the presentation speed for solo games and rooms you host.
+	Speed string `json:"speed"`
+	// MusicVolume and SFXVolume sit under the master Volume.
+	MusicVolume float64 `json:"music_volume"`
+	SFXVolume   float64 `json:"sfx_volume"`
+	// Palette is neon, colorblind or contrast.
+	Palette string `json:"palette,omitempty"`
+	// NoHints turns off the first-game hints; HintsSeen remembers which
+	// hints were already shown.
+	NoHints   bool            `json:"no_hints,omitempty"`
+	HintsSeen map[string]bool `json:"hints_seen,omitempty"`
+	// Version marks the config format; files without one predate pacing.
+	Version int `json:"config_version"`
 }
+
+// configVersion is the current config format.
+const configVersion = 2
 
 // Token is a saved rejoin token.
 type Token struct {
@@ -51,11 +67,15 @@ func Default() Config {
 	return Config{
 		Name:     "RUNNER",
 		Volume:   0.6,
-		WindowMS: 8000,
 		TurnMS:   60000,
 		BotLevel: "normal",
 		Bots:     3,
 		Port:     7777,
+		Speed:    protocol.SpeedRelaxed,
+		Version:  configVersion,
+
+		MusicVolume: 0.8,
+		SFXVolume:   1,
 	}
 }
 
@@ -98,9 +118,23 @@ func (s *Store) Load() Config {
 	if err != nil {
 		return c
 	}
+	c.Version = 0
 	_ = json.Unmarshal(b, &c)
+	if c.Version < 2 {
+		// Before pacing the reaction window was always explicit (8 s by
+		// default); move old configs to the speed-based default.
+		c.WindowMS = 0
+	}
+	c.Version = configVersion
+	c.Speed = protocol.ParseSpeed(c.Speed)
 	if c.Volume < 0 || c.Volume > 1 {
 		c.Volume = Default().Volume
+	}
+	if c.MusicVolume < 0 || c.MusicVolume > 1 {
+		c.MusicVolume = Default().MusicVolume
+	}
+	if c.SFXVolume < 0 || c.SFXVolume > 1 {
+		c.SFXVolume = Default().SFXVolume
 	}
 	if n := protocol.CleanName(c.Name); n != "" {
 		c.Name = n

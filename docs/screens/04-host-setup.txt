@@ -2,7 +2,6 @@
 
 
 
-
               ╭──────────────────────────────────────────────────────────────────────╮
               │                                                                      │
               │   HOST ROOM                                                          │
@@ -11,7 +10,8 @@
               │   ▶ Seats           ◀ 4 ▶                                            │
               │     Fill with bots  ◀ ON ▶                                           │
               │     Bot difficulty  ◀ FIXER (normal) ▶                               │
-              │     Reaction window ◀ 8s ▶                                           │
+              │     Speed           ◀ RELAXED ▶                                      │
+              │     Reaction window ◀ AUTO (12s) ▶                                   │
               │     Turn timer      ◀ 60s ▶                                          │
               │     Magistrate      ◀ OFF ▶                                          │
               │     Seat hold       ◀ 60s ▶                                          │

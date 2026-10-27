@@ -30,6 +30,20 @@ What is deliberately not done (or only partly done). Nothing here is silently st
 - Stats, replays and settings are kept per session in memory only. There are no per-user
   accounts.
 
+## Presentation (UX update)
+- **Skip and pause are solo-only.** At a table with more than one human, one player skipping or
+  pausing would change everyone's clock, so the host refuses it. Online tables use the speed the
+  host picked.
+- **`P` pauses with Shift.** Lowercase `p` already passes in a reaction window; with Caps Lock on,
+  `P` pauses instead.
+- **The palette is process-wide.** Colors are package-level in `client/theme`, so the SSH server
+  (many sessions in one process) keeps the neon palette, and the palette setting is hidden there.
+  Per-session palettes would need the colors moved into each `Theme`.
+- **Tracker cards reuse the 12×7 compact art** rather than new 10×7 art; the full card row needs
+  a center at least 74 columns wide (about 160×45 with five rivals). Narrower tables use tiles.
+- **A lagging client catches up by playing beats at 4×** when it holds more than one state in its
+  queue. It never drops beats.
+
 ## Platforms
 - Audio output on macOS and Windows (oto) is verified by cross-compiling and by the
   device-independent synth tests only; it has not been played on real macOS/Windows hardware

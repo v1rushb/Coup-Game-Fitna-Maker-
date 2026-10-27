@@ -8,11 +8,12 @@
       │                                            │  │                                      │
       │ ● RUNNER             READY [HOST] (you)    │  │ seats        4                       │
       │ ● TRINITY            READY                 │  │ bot fill     ON (normal)             │
-      │ ● CASE               NOT READY             │  │ window       8s                      │
-      │ ○ bot #1             FIXER (NORMAL)        │  │ turn timer   60s                     │
-      │                                            │  │ magistrate   OFF                     │
-      │ 1 spectator(s) watching                    │  │ seat hold    60s                     │
-      ╰────────────────────────────────────────────╯  ╰──────────────────────────────────────╯
+      │ ● CASE               NOT READY             │  │ speed        RELAXED                 │
+      │ ○ bot #1             FIXER (NORMAL)        │  │ window       AUTO (12s)              │
+      │                                            │  │ turn timer   60s                     │
+      │ 1 spectator(s) watching                    │  │ magistrate   OFF                     │
+      ╰────────────────────────────────────────────╯  │ seat hold    60s                     │
+                                                      ╰──────────────────────────────────────╯
 
       ╭──────────────────────────────────────────────────────────────────────────────────────╮
       │ // TRINITY jacked in                                                                 │
@@ -26,5 +27,4 @@
       │                                                                                      │
       ╰──────────────────────────────────────────────────────────────────────────────────────╯
 
-      enter START · +/- seats · f bot fill · d difficulty
-      w window · t turn timer · g magistrate · tab chat · q leave
+      enter START · +/- seats · f bot fill · d difficulty · v speed

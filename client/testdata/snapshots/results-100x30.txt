@@ -1,0 +1,30 @@
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 1  ▶ VEX                    ♪✖ no audio  ? help  q leave
+ ╭─────────╔═══════════════════════════════════════════════════════════════════════════╗───────────╮
+ │   GHOSTW║                                                                           ║           │
+ │ ¢2      ║       SYSTEM SEIZED                                                       ║UNNERS     │
+ │ no claim║                                                                           ║           │
+ │         ║    winner: RUNNER   turns: 1                                              ║──         │
+ ╰─────────║    your challenges: 0 (0 won)   blocks: 0   coins earned: 0   coups: 0    ║           │
+╭──────────║                                                                           ║           │
+│   MOTH   ║    THE CARDS // every hand, face up                                       ║           │
+│ ¢2       ║    VEX          DUKE        CONTESSA    bluffs: 2 got away, 0 caught      ║           │
+│ no claims║    YOU          CONTESSA    CAPTAIN     played it straight                ║           │
+│          ║    MOTH         AMBASSADOR  CAPTAIN     played it straight                ║           │
+│          ║    GHOSTWIRE    CAPTAIN     CONTESSA    played it straight                ║           │
+│          ║    NULLBYTE     DUKE        ASSASSIN    played it straight                ║           │
+╰──────────║                                                                           ║           │
+           ║    KEY MOMENTS                                                            ║           │
+╔══════════║    T23 GHOSTWIRE called VEX's ASSASSIN: it was real                       ║           │
+║ DUKE     ║    T23 GHOSTWIRE flatlined                                                ║           │
+║     ▄▄▄▄▄║    T34 NULLBYTE couped VEX                                                ║───────────╯
+║   ▄█▀▀▀▀▀║    T34 VEX flatlined                                                      ║───────────╮
+║   █  ▄▄ (║    T39 YOU couped NULLBYTE                                                ║           │
+║   █   ▄▄ ║    T39 NULLBYTE flatlined                                                 ║ taunt     │
+║   ▀█▄═══▄║    T39 YOU seized the city                                                ║           │
+║  ▄▓▓▓█[¢]║    replay saved: ~/.config/neoncoup/replays/20870101-000000-7K2Q.json     ║           │
+║──────────║                                                                           ║           │
+║ TAX +3¢  ║    [r] rematch  [v] replay  [enter] lobby  [q] leave                      ║           │
+║ BLOCKS FO║                                                                           ║           │
+╚══════════╚═══════════════════════════════════════════════════════════════════════════╝───────────╯
+ VEX is choosing a move ⠋
+ [t]TAUNT  [?]HELP

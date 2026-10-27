@@ -21,16 +21,17 @@ const (
 	oppH     = 6
 	maxTopW  = 34
 	chatRows = 7
-	// minCenterW keeps the center terminal readable.
-	minCenterW = 34
+	// wantCenterW fits the card tracker's full row of mini cards; side
+	// panels narrow before the center does.
+	wantCenterW = 78
 )
 
 // layout picks panel widths for the terminal size.
 func layout(w int) (logW, sideW int) {
-	logW = max(30, min(48, w*30/100))
+	logW = max(30, min(44, w*28/100))
 	sideW = 24
-	if w-logW-2*sideW < minCenterW {
-		sideW = max(18, (w-logW-minCenterW)/2)
+	if w-logW-2*sideW < wantCenterW {
+		sideW = max(18, (w-logW-wantCenterW)/2)
 	}
 	return logW, sideW
 }
@@ -48,11 +49,34 @@ func (g *gameScreen) view(a *App) string {
 	side := g.sidePanel(a, logW, bodyH)
 	out := lipgloss.JoinVertical(lipgloss.Left, top, lipgloss.JoinHorizontal(lipgloss.Top, main, side), g.actionBar(a, W))
 	out = fit(out, W, H)
+	if bn := g.banner(a, mainW-2); bn != "" {
+		// Centered over the middle of the table, between the rivals and your hand.
+		bw, bh := lipgloss.Size(bn)
+		handH := handHeight(bodyH)
+		midH := bodyH - oppH - handH
+		out = overlayAt(out, bn, max(0, (mainW-bw)/2), 1+oppH+max(0, (midH-bh)/2))
+	}
+	out = g.sprites(a, out)
 	if !g.myDeath.IsZero() && a.now.Sub(g.myDeath) < deathDur && g.over == nil {
 		out = g.deathScreen(a, out)
 	}
 	if g.mode == modeTaunt {
 		out = overlay(out, g.tauntMenu(a), W, H)
+	}
+	if hb := g.hintBox(a); hb != "" && g.inspect < 0 && g.prefs == nil {
+		_, hh := lipgloss.Size(hb)
+		out = overlayAt(out, hb, 1, H-2-hh)
+	}
+	if g.inspect >= 0 {
+		out = overlay(out, g.inspectView(a), W, H)
+	}
+	if g.prefs != nil {
+		out = overlay(out, g.prefs.view(a), W, H)
+	}
+	if g.paused {
+		box := lipgloss.NewStyle().Border(a.t.ThickBorder).BorderForeground(theme.Acid).Background(theme.Panel).Padding(1, 4).
+			Render(a.t.Warn.Render("PAUSED") + "\n\n" + a.t.Muted.Render("bots and timers are frozen") + "\n" + a.t.Faint.Render("P to resume"))
+		out = overlay(out, box, W, H)
 	}
 	if g.tutor != nil {
 		out = g.tutor.overlay(a, g, out)
@@ -72,6 +96,17 @@ func (g *gameScreen) topBar(a *App, w int) string {
 		room = "  ROOM " + a.conn.Room
 	}
 	left := t.Title.Render(" NEON//COUP ") + t.Muted.Render(fmt.Sprintf("%s  GAME %d  TURN %d", room, g.gs.Game, g.v.Turn))
+	if g.v.Phase != engine.PhaseGameOver && g.v.Current >= 0 && g.v.Current < len(g.seats) {
+		if g.v.Current == g.me {
+			st := lipgloss.NewStyle().Foreground(theme.Bg).Background(theme.Cyan).Bold(true)
+			if g.alerting(a) && (a.now.Sub(g.turnAlert)/(250*time.Millisecond))%2 == 1 {
+				st = st.Background(theme.White)
+			}
+			left += "  " + st.Render(" "+t.G("▶", ">")+" YOUR TURN ")
+		} else {
+			left += "  " + t.Hot.Render(t.G("▶ ", "> ")+g.name(g.v.Current))
+		}
+	}
 	if g.v.Magistrate {
 		left += t.Warn.Render("  MAGISTRATE")
 	}
@@ -105,10 +140,7 @@ func (g *gameScreen) seatOrder() []int {
 func (g *gameScreen) tableArea(a *App, w, h int) string {
 	_, sideW := layout(a.w)
 	others := g.seatOrder()
-	handH := art.CardH
-	if h-oppH-handH < 9 {
-		handH = art.CompactH
-	}
+	handH := handHeight(h)
 	compact := handH == art.CompactH
 	midH := h - oppH - handH
 
@@ -146,6 +178,14 @@ func (g *gameScreen) tableArea(a *App, w, h int) string {
 	return lipgloss.JoinVertical(lipgloss.Left, topRow, midRow, handRow)
 }
 
+// handHeight is the hand row's height for a table area h rows tall.
+func handHeight(h int) int {
+	if h-oppH-art.CardH < 9 {
+		return art.CompactH
+	}
+	return art.CardH
+}
+
 func (g *gameScreen) passed(seat int) bool {
 	if !g.v.Phase.Timed() {
 		return false
@@ -179,31 +219,42 @@ func (g *gameScreen) oppBox(a *App, seat, w, h int) string {
 		return ""
 	}
 	p := g.v.Players[seat]
+	if g.eliminating(a, seat) {
+		p.Alive = false // the glitch is over: show what's left of them
+	}
 	inner := w - 4
 	now := a.now
 	awaited := slices.Contains(g.v.Awaiting, seat)
 
+	pend := g.v.Pending
 	border := theme.Faint
 	switch {
 	case !p.Alive:
 		border = theme.Faint
 	case g.offline[seat]:
 		border = theme.Red
+	case pend != nil && pend.Target == seat && pend.Action.Targeted():
+		border = theme.Red // the action is aimed here
 	case awaited:
 		border = theme.Cyan
 	case g.v.Current == seat:
 		border = theme.Magenta
+	}
+	dim := g.dimmed(seat)
+	if dim {
+		border = theme.Faint
 	}
 	if ts, ok := g.oppFx[seat]; ok && now.Sub(ts) < flashDur && (now.Sub(ts)/(150*time.Millisecond))%2 == 0 {
 		border = theme.White
 	}
 
 	// Line 1: marker + name + tag.
+	// The mover always wears the ▶; anyone else being waited on spins.
 	marker := "  "
-	if awaited && p.Alive {
-		marker = a.spinner() + " "
-	} else if g.v.Current == seat && p.Alive {
+	if g.v.Current == seat && p.Alive {
 		marker = t.Hot.Render(t.G("▶ ", "> "))
+	} else if awaited && p.Alive {
+		marker = a.spinner() + " "
 	}
 	nameSt := t.Bold
 	if !p.Alive {
@@ -223,8 +274,22 @@ func (g *gameScreen) oppBox(a *App, seat, w, h int) string {
 	line1 := marker + nameSt.Render(trunc(g.seats[seat].Name, max(4, nameW)))
 	line1 = padTo(line1, inner-len(tagTxt)) + t.Faint.Render(tagTxt)
 
-	// Line 2: coins + influence pips.
+	// Line 2: coins, face-up cards and influence pips; a flatlined runner
+	// is just gone.
 	coins := g.coinText(a, seat)
+	if !p.Alive {
+		coins = t.Faint.Render("[ DISCONNECTED ]")
+		if inner < 18 {
+			coins = t.Faint.Render("[DISCONNECTED]")
+		}
+	} else {
+		for _, c := range p.Revealed {
+			tag := " " + lipgloss.NewStyle().Foreground(theme.Red).Strikethrough(true).Render(t.G("✖", "x")+abbr(c))
+			if lipgloss.Width(coins+tag)+3 <= inner {
+				coins += tag
+			}
+		}
+	}
 	pips := t.G(strings.Repeat("●", p.Hidden), strings.Repeat("o", p.Hidden)) + t.G(strings.Repeat("○", len(p.Revealed)), strings.Repeat(".", len(p.Revealed)))
 	pipSt := lipgloss.NewStyle().Foreground(theme.Magenta)
 	if !p.Alive {
@@ -232,30 +297,40 @@ func (g *gameScreen) oppBox(a *App, seat, w, h int) string {
 	}
 	line2 := padTo(coins, inner-lipgloss.Width(pips)) + pipSt.Render(pips)
 
-	// Line 3: face-up cards.
-	var rev []string
-	for _, c := range p.Revealed {
-		rev = append(rev, lipgloss.NewStyle().Foreground(theme.CharColor(c)).Strikethrough(true).Render(t.G("✖", "x")+shortName(c)))
-	}
-	line3 := strings.Join(rev, " ")
-	if line3 == "" {
-		if inner >= 16 {
-			line3 = t.Faint.Render("no cards exposed")
-		} else {
-			line3 = t.Faint.Render("none exposed")
+	// Line 3: what they've claimed this game (their face-up cards once
+	// they're out).
+	line3 := g.badges(a, seat)
+	if !p.Alive {
+		var rev []string
+		for _, c := range p.Revealed {
+			rev = append(rev, lipgloss.NewStyle().Foreground(theme.CharColor(c)).Strikethrough(true).Render(t.G("✖", "x")+abbr(c)))
 		}
+		line3 = strings.Join(rev, " ")
 	}
 
 	// Line 4: status.
-	line4 := g.seatStatus(a, seat)
+	line4 := g.seatStatus(a, seat, inner)
 
 	content := strings.Join([]string{line1, line2, line3, line4}, "\n")
-	if ts, ok := g.glitch[seat]; ok && now.Sub(ts) < glitchDur {
+	glitching := false
+	if b := g.beat; b != nil && b.ev.Kind == engine.EvEliminated && b.ev.Seat == seat && !a.cfg.ReduceMotion {
+		// The panel tears apart for most of the elimination beat.
+		if amt := 1 - span(b.progress(g.clock(a)), 0, 0.75); amt > 0 {
+			content = lipgloss.NewStyle().Foreground(glitchColor(a)).Render(art.Glitch(ansi.Strip(content), amt, a.rng))
+			border, glitching = glitchColor(a), true
+		}
+	} else if ts, ok := g.glitch[seat]; ok && now.Sub(ts) < glitchDur && g.beat == nil {
 		amt := 1 - now.Sub(ts).Seconds()/glitchDur.Seconds()
 		content = lipgloss.NewStyle().Foreground(glitchColor(a)).Render(art.Glitch(ansi.Strip(content), amt, a.rng))
-		border = glitchColor(a)
+		border, glitching = glitchColor(a), true
+	}
+	if dim && !glitching {
+		content = t.Faint.Render(ansi.Strip(content))
 	}
 	st := lipgloss.NewStyle().Border(t.RoundBorder).BorderForeground(border).Padding(0, 1).Width(w).Height(h).MaxHeight(h)
+	if g.v.Current == seat && p.Alive && !dim {
+		st = st.Border(t.ThickBorder) // the active player is unmistakable
+	}
 	return st.Render(fitLines(content, inner, h-2))
 }
 
@@ -263,13 +338,16 @@ func glitchColor(a *App) color.Color {
 	return []color.Color{theme.Red, theme.Magenta, theme.Cyan, theme.White}[a.rng.IntN(4)]
 }
 
-func (g *gameScreen) seatStatus(a *App, seat int) string {
+func (g *gameScreen) seatStatus(a *App, seat, w int) string {
 	t := a.t
 	p := g.v.Players[seat]
+	if g.eliminating(a, seat) {
+		return ""
+	}
 	pend := g.v.Pending
 	switch {
 	case !p.Alive:
-		return t.Loss.Render("FLATLINED")
+		return ""
 	case g.v.Challenge != nil && g.v.Challenge.Claimant == seat:
 		return t.Warn.Render("CHALLENGED! proving...")
 	case g.v.Phase == engine.PhaseLoseInfluence && g.v.Loser == seat:
@@ -279,7 +357,10 @@ func (g *gameScreen) seatStatus(a *App, seat int) string {
 	case pend != nil && pend.Actor == seat && pend.Claim != engine.NoCharacter:
 		return t.Hot.Render("claims " + pend.Claim.Title())
 	case pend != nil && pend.Target == seat:
-		return t.Warn.Render("targeted: " + pend.Action.Title())
+		if w < 16 {
+			return t.Loss.Render(t.G("◀ ", "< ") + "TARGET")
+		}
+		return t.Loss.Render(t.G("◀ ", "< ") + "TARGET: " + pend.Action.Title())
 	case g.passed(seat):
 		return t.Faint.Render("pass")
 	case slices.Contains(g.v.Awaiting, seat):
@@ -307,43 +388,25 @@ func (g *gameScreen) coinText(a *App, seat int) string {
 	return st.Render(fmt.Sprintf("%s%d", t.Coin(), shown))
 }
 
-func shortName(c engine.Character) string {
-	switch c {
-	case engine.Ambassador:
-		return "AMBSDR"
-	case engine.Magistrate:
-		return "MAGIST"
-	case engine.Assassin:
-		return "ASSASN"
-	case engine.Contessa:
-		return "CONTSA"
-	}
-	return c.Title()
-}
-
 // --- center terminal -------------------------------------------------------
 
+// terminal is the center of the table: what is on the table now, above the
+// card tracker.
 func (g *gameScreen) terminal(a *App, w, h int) string {
 	t := a.t
-	inner := w - 4
+	inner, innerH := w-4, h-2
 	v := g.v
-	var lines []string
+	var top []string
 	add := func(st lipgloss.Style, text string) {
-		lines = append(lines, wrapStyled(st, text, inner)...)
+		top = append(top, wrapStyled(st, text, inner)...)
 	}
-	add(t.Accent, fmt.Sprintf("TREASURY %d%s · DECK %d · TURN %d", v.Treasury, t.Coin(), v.DeckCount, v.Turn))
-	if h-2 > 9 {
-		lines = append(lines, t.Faint.Render(strings.Repeat(t.G("─", "-"), inner)))
-	}
-
 	pend := v.Pending
 	switch {
 	case v.Phase == engine.PhaseGameOver:
 		add(t.Gain, "GAME OVER")
 	case pend == nil:
 		if v.Current == g.me {
-			add(t.Hot, "> YOUR TURN")
-			add(t.Muted, "  choose an action below")
+			add(t.Hot, "> YOUR TURN · choose an action below")
 		} else {
 			add(t.Text, "> "+g.name(v.Current)+" is choosing a move")
 		}
@@ -356,80 +419,51 @@ func (g *gameScreen) terminal(a *App, w, h int) string {
 			add(t.Loss, fmt.Sprintf("  %s CHALLENGES %s's %s", g.name(c.Challenger), g.name(c.Claimant), c.Claim.Title()))
 		}
 	}
-	if h-2 > 9 {
-		lines = append(lines, "")
-	}
+	var phase, bar []string
 	if pl := g.phaseLine(a); pl != "" {
-		lines = append(lines, pl)
+		phase = []string{pl}
 	}
-	if bar := g.timerBar(a, inner); bar != "" {
-		lines = append(lines, bar)
+	if b := g.timerBar(a, inner); b != "" {
+		bar = []string{b}
 	}
-	if len(v.Awaiting) > 0 {
-		var names []string
-		for _, s := range v.Awaiting {
-			names = append(names, g.name(s))
+	label := []string{"", t.Faint.Render(trunc("COURT TRACKER // revealed: face up · unseen: anywhere but your hand", inner))}
+	cat := func(parts ...[]string) []string {
+		var out []string
+		for _, p := range parts {
+			out = append(out, p...)
 		}
-		lines = append(lines, wrapStyled(t.Muted, "waiting on: "+strings.Join(names, ", "), inner)...)
+		return out
 	}
-	// Court intel: public card counting, the basis of every good challenge.
-	if room := h - 2 - len(lines); room >= 4 {
-		lines = append(lines, "", t.Faint.Render("COURT INTEL // face-up cards"))
-		lines = append(lines, g.courtIntel(a, inner)...)
+	head := top[:min(1, len(top))]
+	var cands [][]string
+	if cards, ok := g.trackerCards(a, inner, innerH-len(head)); ok {
+		block := strings.Split(cards, "\n")
+		cands = append(cands, cat(top, phase, bar, label, block), cat(top, phase, bar, block), cat(top, phase, block), cat(head, block))
 	}
+	bank := []string{t.Accent.Render(fmt.Sprintf("TREASURY %d%s · DECK %d", v.Treasury, t.Coin(), v.DeckCount))}
+	if med, ok := g.trackerMedium(a, inner, innerH-len(head)-1); ok {
+		cands = append(cands, cat(bank, top, phase, bar, label, med), cat(bank, top, phase, bar, med), cat(bank, top, phase, med), cat(bank, head, med))
+	}
+	tiles := g.trackerTiles(a, inner)
+	cands = append(cands, cat(bank, top, phase, bar, label, tiles), cat(bank, top, phase, bar, tiles),
+		cat(bank, top, phase, tiles), cat(bank, head, tiles), cat(head, tiles))
+	lines := cands[len(cands)-1]
+	for _, c := range cands {
+		if len(c) <= innerH {
+			lines = c
+			break
+		}
+	}
+	g.locate(lines)
 	border := theme.Magenta
 	if g.awaitingMe() {
 		border = theme.Cyan
+		if g.alerting(a) && (a.now.Sub(g.turnAlert)/(250*time.Millisecond))%2 == 1 {
+			border = theme.White
+		}
 	}
 	st := lipgloss.NewStyle().Border(t.ThickBorder).BorderForeground(border).Padding(0, 1).Width(w).Height(h)
-	return st.Render(fitLines(strings.Join(lines, "\n"), inner, h-2))
-}
-
-// courtIntel lists how many copies of each character are exposed, and how
-// many the viewer holds, so claims can be weighed at a glance.
-func (g *gameScreen) courtIntel(a *App, w int) []string {
-	t := a.t
-	exposed := map[engine.Character]int{}
-	for _, p := range g.v.Players {
-		for _, c := range p.Revealed {
-			exposed[c]++
-		}
-	}
-	mine := map[engine.Character]int{}
-	for _, c := range g.v.Hand {
-		if !c.Revealed {
-			mine[c.Char]++
-		}
-	}
-	var cells []string
-	for _, c := range engine.DeckComposition(g.v.Magistrate) {
-		n := exposed[c]
-		txt := fmt.Sprintf("%-7s %d/3", shortName(c), n)
-		if mine[c] > 0 {
-			txt += fmt.Sprintf("+%d", mine[c])
-		} else {
-			txt += "  "
-		}
-		st := lipgloss.NewStyle().Foreground(theme.CharColor(c))
-		if n+mine[c] >= engine.CopiesPerCharacter {
-			st = st.Strikethrough(true) // every copy accounted for: any claim is a lie
-		}
-		cells = append(cells, st.Render(txt))
-	}
-	cellW := 15
-	perRow := max(1, w/cellW)
-	var rows []string
-	for i := 0; i < len(cells); i += perRow {
-		var row []string
-		for _, c := range cells[i:min(len(cells), i+perRow)] {
-			row = append(row, padTo(c, cellW))
-		}
-		rows = append(rows, strings.Join(row, ""))
-	}
-	if g.me >= 0 {
-		rows = append(rows, t.Faint.Render("(+n = in your hand)"))
-	}
-	return rows
+	return st.Render(fitLines(strings.Join(lines, "\n"), inner, innerH))
 }
 
 // wrapStyled wraps plain text to width and styles each line.
@@ -473,10 +507,10 @@ func (g *gameScreen) phaseLine(a *App) string {
 }
 
 func (g *gameScreen) timerBar(a *App, w int) string {
-	if g.deadline.IsZero() || g.timerTotal <= 0 {
+	if g.deadline.IsZero() || g.timerTotal <= 0 || g.beat != nil {
 		return ""
 	}
-	left := g.deadline.Sub(a.now)
+	left := g.deadline.Sub(g.clock(a))
 	if left < 0 {
 		left = 0
 	}
@@ -527,6 +561,10 @@ func (g *gameScreen) handRow(a *App, w, h int, compact bool) string {
 		full := art.CardW
 		if compact {
 			full = art.CompactW
+		}
+		if card, ok := g.beatSlot(a, slot, o, full); ok {
+			cards = append(cards, card)
+			continue
 		}
 		if ts, ok := g.flips[slot]; ok && a.now.Sub(ts) < flipDur && !a.cfg.ReduceMotion {
 			ph := a.now.Sub(ts).Seconds() / flipDur.Seconds()
@@ -623,7 +661,11 @@ func (g *gameScreen) sidePanel(a *App, w, h int) string {
 	visible := logH - 3
 	for i := end - 1; i >= 0; i-- {
 		l := logLines[i]
-		wrapped := strings.Split(wrap(t.A(l.text), inner-2), "\n")
+		text := l.text
+		if l.icon != "" {
+			text = l.icon + " " + text
+		}
+		wrapped := strings.Split(wrap(t.A(text), inner-2), "\n")
 		if len(lines)+len(wrapped) > visible {
 			break // never show half an entry
 		}
@@ -672,6 +714,14 @@ func (g *gameScreen) logStyle(a *App, l logLine) lipgloss.Style {
 		return t.Text
 	case logSystem:
 		return t.Muted
+	case logAction:
+		return t.Text
+	case logChallenge:
+		return t.Loss.UnsetBold()
+	case logBlock:
+		return t.Warn.UnsetBold()
+	case logSummary:
+		return t.Accent
 	}
 	return t.Text
 }
@@ -683,10 +733,12 @@ var actionLabels = map[engine.Action]string{
 	engine.Assassinate: "ASSASSIN", engine.Steal: "STEAL", engine.Exchange: "SWAP", engine.Audit: "AUDIT",
 }
 
+// actionBar is the context bar (what's happening, your choices and their
+// risks, the countdown) over the hotkeys.
 func (g *gameScreen) actionBar(a *App, w int) string {
-	prompt, keys := g.prompt(a)
+	_, keys := g.prompt(a)
 	bg := lipgloss.NewStyle().Background(theme.Panel)
-	l1 := bg.Render(padTo(" "+prompt, w))
+	l1 := bg.Render(padTo(" "+g.contextLine(a, w-2), w))
 	l2 := bg.Render(padTo(" "+keys, w))
 	return fit(l1, w, 1) + "\n" + fit(l2, w, 1)
 }
@@ -870,8 +922,39 @@ func (g *gameScreen) resultsView(a *App) string {
 	if g.me >= 0 {
 		s := g.stats
 		lines = append(lines,
-			t.Muted.Render(fmt.Sprintf("your bluffs: %d (%d caught)   challenges: %d (%d won)", s.Bluffs, s.BluffsCaught, s.Challenges, s.ChallengesWon)),
-			t.Muted.Render(fmt.Sprintf("blocks: %d   coins earned: %d   coups: %d", s.Blocks, s.CoinsEarned, s.Coups)))
+			t.Muted.Render(fmt.Sprintf("your challenges: %d (%d won)   blocks: %d   coins earned: %d   coups: %d",
+				s.Challenges, s.ChallengesWon, s.Blocks, s.CoinsEarned, s.Coups)))
+	}
+	if pg := g.post; pg != nil {
+		lines = append(lines, "", t.Accent.Render("THE CARDS // every hand, face up"))
+		for seat, hand := range pg.hands {
+			row := padTo(t.Bold.Render(trunc(g.name(seat), 12)), 13)
+			for _, c := range hand {
+				st := lipgloss.NewStyle().Foreground(theme.CharColor(c.Char)).Bold(true)
+				if c.Revealed {
+					st = lipgloss.NewStyle().Foreground(theme.Dim).Strikethrough(true)
+				}
+				row += padTo(st.Render(c.Char.Title()), 12)
+			}
+			b := pg.bluffs[seat]
+			bl := t.Muted.Render(fmt.Sprintf("bluffs: %d got away, %d caught", b.ok, b.caught))
+			if b.ok+b.caught == 0 {
+				bl = t.Faint.Render("played it straight")
+			}
+			lines = append(lines, row+bl)
+		}
+		// Key moments, as many of the latest as fit.
+		room := a.h - 6 - len(lines) - 6
+		if room >= 2 && len(pg.moments) > 0 {
+			lines = append(lines, "", t.Accent.Render("KEY MOMENTS"))
+			ms := pg.moments
+			if len(ms) > room {
+				ms = ms[len(ms)-room:]
+			}
+			for _, m := range ms {
+				lines = append(lines, t.Text.Render(trunc(m, 72)))
+			}
+		}
 	}
 	if g.replayPath != "" {
 		lines = append(lines, t.Faint.Render("replay saved: "+trunc(g.replayPath, 60)))
@@ -938,7 +1021,7 @@ func (g *gameScreen) shake(a *App, body string) string {
 
 // padTo pads a styled string with spaces to width w.
 func padTo(s string, w int) string {
-	if n := lipgloss.Width(s); n < w {
+	if n := cellWidth(s); n < w {
 		return s + strings.Repeat(" ", w-n)
 	}
 	return s
@@ -951,7 +1034,7 @@ func fitLines(s string, w, h int) string {
 		lines = lines[:h]
 	}
 	for i, l := range lines {
-		if lipgloss.Width(l) > w {
+		if cellWidth(l) > w {
 			lines[i] = ansi.Cut(l, 0, w)
 		}
 	}

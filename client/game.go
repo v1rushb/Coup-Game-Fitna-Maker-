@@ -80,6 +80,32 @@ type gameScreen struct {
 	lastClaim  engine.Character
 
 	tutor *tutor
+
+	// Focus (focus.go): your-turn alert.
+	turnAlert time.Time
+	alertTurn int
+	// tense mirrors what the music was last told about the game's mood.
+	tense bool
+
+	// Extras (extras.go, prefs.go).
+	chron   chronicle
+	inspect int // seat being inspected, -1 for none
+	hint    string
+	hintVer uint64
+	prefs   *prefsOverlay
+	post    *postGame
+
+	// Animation (sprites.go): where the tracker drew the deck and treasury,
+	// and the card each seat last proved.
+	trackDeck, trackBank point
+	lastProven           map[int]engine.Character
+
+	// Presentation (present.go).
+	queue    []qItem
+	beat     *beat
+	speed    string
+	paused   bool
+	pausedAt time.Time
 }
 
 func newGameScreen(a *App, gs protocol.GameStart) *gameScreen {
@@ -90,6 +116,12 @@ func newGameScreen(a *App, gs protocol.GameStart) *gameScreen {
 		coinFx:  map[int]time.Time{}, coinUp: map[int]bool{},
 		flips: map[int]time.Time{}, oppFx: map[int]time.Time{}, glitch: map[int]time.Time{},
 		stats: config.GameStats{Mode: a.mode},
+		speed: protocol.ParseSpeed(gs.Settings.Speed),
+
+		trackDeck: point{-1, -1}, trackBank: point{-1, -1},
+		lastProven: map[int]engine.Character{},
+		chron:      newChronicle(),
+		inspect:    -1,
 	}
 	g.log = append(g.log, logLine{text: fmt.Sprintf("// GAME %d // %d RUNNERS // JACKED IN", gs.Game, len(gs.Seats)), kind: logTurn})
 	if gs.Settings.Magistrate {
@@ -111,8 +143,10 @@ func (g *gameScreen) name(seat int) string {
 	return "?"
 }
 
+// awaitingMe reports whether you have a decision to make now: the table is
+// waiting on you and everything in front of it has finished playing.
 func (g *gameScreen) awaitingMe() bool {
-	return g.have && g.me >= 0 && slices.Contains(g.v.Awaiting, g.me) && len(g.v.Legal) > 0
+	return g.have && g.me >= 0 && !g.presenting() && slices.Contains(g.v.Awaiting, g.me) && len(g.v.Legal) > 0
 }
 
 func (g *gameScreen) legal(in engine.Intent) bool {
@@ -130,6 +164,7 @@ func handHas(hand []engine.Card, c engine.Character) bool {
 
 // --- incoming ------------------------------------------------------------------
 
+// onFrame queues a frame for presentation.
 func (g *gameScreen) onFrame(a *App, env protocol.Envelope) tea.Cmd {
 	switch env.Type {
 	case protocol.TState:
@@ -137,29 +172,38 @@ func (g *gameScreen) onFrame(a *App, env protocol.Envelope) tea.Cmd {
 		if env.Into(&st) != nil {
 			return nil
 		}
-		g.onState(a, st)
+		if st.Speed != "" {
+			g.speed = protocol.ParseSpeed(st.Speed)
+		}
+		g.enqueue(a, qItem{state: &st})
 	case protocol.TEvents:
 		var evs protocol.Events
 		if env.Into(&evs) != nil {
 			return nil
 		}
-		g.onEvents(a, evs.Events)
+		for i := range evs.Events {
+			g.enqueue(a, qItem{ev: &evs.Events[i]})
+		}
 	case protocol.TGameOver:
 		var over protocol.GameOver
 		if env.Into(&over) != nil {
 			return nil
 		}
-		g.onGameOver(a, over)
+		g.enqueue(a, qItem{over: &over})
+	case protocol.TChat, protocol.TEmote:
+		g.enqueue(a, qItem{chat: &env})
 	}
+	g.pump(a)
 	return nil
 }
 
-func (g *gameScreen) onState(a *App, st protocol.State) {
+// onState applies a state; recv is when it arrived, which its timer counts from.
+func (g *gameScreen) onState(a *App, st protocol.State, recv time.Time) {
 	first := !g.have
 	g.v = st.View
 	g.have = true
 	if st.DeadlineMS > 0 {
-		g.deadline = a.now.Add(time.Duration(st.DeadlineMS) * time.Millisecond)
+		g.deadline = recv.Add(time.Duration(st.DeadlineMS) * time.Millisecond)
 		g.timerTotal = time.Duration(st.TimerMS) * time.Millisecond
 	} else {
 		g.deadline = time.Time{}
@@ -187,22 +231,18 @@ func (g *gameScreen) onState(a *App, st protocol.State) {
 		g.exSel = nil
 	}
 	g.lastHand = g.v.Hand
+	v := g.v
+	if g.me >= 0 && v.Phase == engine.PhaseTurnStart && v.Current == g.me && slices.Contains(v.Awaiting, g.me) &&
+		len(v.Legal) > 0 && g.alertTurn != v.Turn {
+		g.alertTurn, g.turnAlert = v.Turn, a.now
+		a.sound.SFX(audio.SFXYourTurn)
+	}
+	if t := tenseTable(v); t != g.tense {
+		g.tense = t
+		a.sound.SetIntensity(t)
+	}
 	if g.tutor != nil {
 		g.tutor.onState(a, g)
-	}
-}
-
-func (g *gameScreen) onEvents(a *App, evs []engine.Event) {
-	coin := a.t.Coin()
-	for _, e := range evs {
-		if l, ok := narrate(e, g.name, g.me, coin); ok {
-			g.addLog(l)
-		}
-		g.track(e)
-		g.effects(a, e)
-		if g.tutor != nil {
-			g.tutor.onEvent(a, g, e)
-		}
 	}
 }
 
@@ -313,6 +353,12 @@ func (g *gameScreen) effects(a *App, e engine.Event) {
 
 func (g *gameScreen) onGameOver(a *App, over protocol.GameOver) {
 	g.over = &over
+	g.inspect, g.prefs = -1, nil
+	if pg, err := analyze(over.Replay, g.name); err == nil {
+		g.post = pg
+	}
+	g.tense = false
+	a.sound.SetIntensity(false)
 	g.overAt = a.now
 	g.mode = modeNormal
 	won := g.me >= 0 && over.Winner == g.me
@@ -351,6 +397,7 @@ func (g *gameScreen) onChat(a *App, env protocol.Envelope) {
 // --- animation -----------------------------------------------------------------
 
 func (g *gameScreen) tick(a *App) tea.Cmd {
+	g.pump(a)
 	dt := a.now.Sub(g.lastTick).Seconds()
 	if g.lastTick.IsZero() || dt > 0.5 {
 		dt = 1.0 / fps
@@ -380,6 +427,9 @@ func (g *gameScreen) tick(a *App) tea.Cmd {
 
 func (g *gameScreen) animating(a *App) bool {
 	now := a.now
+	if g.smooth(a) {
+		return true
+	}
 	if g.over != nil {
 		return now.Sub(g.overAt) < 4*time.Second
 	}
@@ -389,14 +439,28 @@ func (g *gameScreen) animating(a *App) bool {
 	if len(g.v.Awaiting) > 0 && !g.awaitingMe() {
 		return true // spinners on whoever we're waiting for
 	}
+	return g.tutor != nil && g.tutor.animating(a)
+}
+
+// smooth reports whether something on the table moves and needs the full
+// frame rate: a beat, ticking coins, flashes and flips. Countdowns and
+// spinners alone run at half rate.
+func (g *gameScreen) smooth(a *App) bool {
+	now := a.now
+	if g.presenting() && !g.paused {
+		return true
+	}
 	for i := range g.shown {
 		if i < len(g.v.Players) && g.shown[i] != float64(g.v.Players[i].Coins) {
 			return true
 		}
 	}
 	recent := func(t time.Time, d time.Duration) bool { return !t.IsZero() && now.Sub(t) < d }
-	if recent(g.jolt, joltDur) || recent(g.myDeath, deathDur) {
+	if recent(g.jolt, joltDur) || recent(g.myDeath, deathDur) || g.alerting(a) {
 		return true
+	}
+	if g.over != nil && now.Sub(g.overAt) < time.Second {
+		return true // the results title glitches in
 	}
 	for _, m := range []map[int]time.Time{g.flips, g.oppFx, g.glitch, g.coinFx} {
 		for _, t := range m {
@@ -405,7 +469,7 @@ func (g *gameScreen) animating(a *App) bool {
 			}
 		}
 	}
-	return g.tutor != nil && g.tutor.animating(a)
+	return false
 }
 
 // --- input ---------------------------------------------------------------------
@@ -448,8 +512,55 @@ func (g *gameScreen) key(a *App, msg tea.KeyPressMsg) tea.Cmd {
 		}
 		return nil
 	}
+	if g.prefs != nil {
+		g.prefs.key(a, g, msg)
+		return nil
+	}
+	if g.inspect >= 0 {
+		switch k {
+		case "tab":
+			g.nextInspect()
+		case "esc", "q":
+			g.inspect = -1
+		}
+		return nil
+	}
 	if g.tutor != nil && g.tutor.key(a, g, k) {
 		return nil
+	}
+	switch k {
+	case "tab":
+		g.nextInspect()
+		return nil
+	case "n", "N":
+		if !a.sound.Available() {
+			a.flash("no audio device: sound is off")
+		} else {
+			a.sound.NextTrack()
+		}
+		return nil
+	case "space", " ":
+		if g.soloControls(a) {
+			g.skipBeat(a)
+		} else if g.presenting() {
+			a.flash("skipping works in solo games")
+		}
+		return nil
+	case "P":
+		if g.soloControls(a) {
+			g.setPaused(a, !g.paused)
+			a.flash(map[bool]string{true: "paused // P to resume", false: "resumed"}[g.paused])
+		} else {
+			a.flash("pause works in solo games")
+		}
+		return nil
+	}
+	if g.paused {
+		switch k {
+		case "q", "esc", "enter", "t":
+		default:
+			return nil
+		}
 	}
 	if g.mode == modeTaunt {
 		if n, err := strconv.Atoi(k); err == nil && n >= 1 && n <= len(protocol.Emotes) && a.sess != nil {
@@ -475,7 +586,7 @@ func (g *gameScreen) key(a *App, msg tea.KeyPressMsg) tea.Cmd {
 			g.exSel = nil
 			return nil
 		}
-		a.quitConfirm = true
+		g.openPrefs(a)
 		return nil
 	case "q":
 		a.quitConfirm = true
@@ -649,4 +760,21 @@ func (g *gameScreen) overKey(a *App, k string) tea.Cmd {
 		a.leaveRoom()
 	}
 	return nil
+}
+
+// tenseTable reports whether the game is on a knife's edge: someone is down
+// to one influence or sitting on a coup (7+ coins), or it's down to two.
+func tenseTable(v engine.PlayerView) bool {
+	alive := 0
+	tense := false
+	for _, p := range v.Players {
+		if !p.Alive {
+			continue
+		}
+		alive++
+		if p.Hidden == 1 || p.Coins >= engine.CoupCost {
+			tense = true
+		}
+	}
+	return tense || (alive == 2 && len(v.Players) > 0)
 }

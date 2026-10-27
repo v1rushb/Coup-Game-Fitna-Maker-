@@ -13,8 +13,9 @@ import (
 )
 
 // Version is bumped on any incompatible change. Hosts reject clients whose
-// Hello carries a different version.
-const Version = 1
+// Hello carries a different version. v2 added presentation pacing (speed,
+// deferred decisions) and the solo control message.
+const Version = 2
 
 // MaxFrame is the largest frame either side accepts.
 const MaxFrame = 64 << 10
@@ -30,6 +31,7 @@ const (
 	TEmote    = "emote"
 	TLeave    = "leave"
 	TPing     = "ping"
+	TControl  = "control"
 )
 
 // Message types, server to client. TChat and TEmote are used both ways.
@@ -121,21 +123,36 @@ type Settings struct {
 	MaxPlayers int    `json:"max_players"`
 	FillBots   bool   `json:"fill_bots"`
 	BotLevel   string `json:"bot_level"`
-	WindowMS   int    `json:"window_ms"`
-	TurnMS     int    `json:"turn_ms"`
-	Magistrate bool   `json:"magistrate,omitempty"`
-	ReconnectS int    `json:"reconnect_s"`
+	// WindowMS is the reaction window; 0 picks it from the speed.
+	WindowMS   int  `json:"window_ms"`
+	TurnMS     int  `json:"turn_ms"`
+	Magistrate bool `json:"magistrate,omitempty"`
+	ReconnectS int  `json:"reconnect_s"`
+	// Speed paces the presentation of events: relaxed, normal, fast, or
+	// instant (no presentation; tests and simulations).
+	Speed string `json:"speed"`
 }
 
 // DefaultSettings are used for new rooms.
 func DefaultSettings() Settings {
-	return Settings{MaxPlayers: 4, FillBots: true, BotLevel: "normal", WindowMS: 8000, TurnMS: 60000, ReconnectS: 60}
+	return Settings{MaxPlayers: 4, FillBots: true, BotLevel: "normal", TurnMS: 60000, ReconnectS: 60, Speed: SpeedRelaxed}
+}
+
+// Window is the reaction window length.
+func (s Settings) Window() time.Duration {
+	if s.WindowMS > 0 {
+		return time.Duration(s.WindowMS) * time.Millisecond
+	}
+	return AutoWindow(s.Speed)
 }
 
 // Clamp forces settings into their legal ranges.
 func (s Settings) Clamp() Settings {
 	s.MaxPlayers = min(max(s.MaxPlayers, engine.MinPlayers), engine.MaxPlayers)
-	s.WindowMS = min(max(s.WindowMS, 2000), 60000)
+	if s.WindowMS != 0 {
+		s.WindowMS = min(max(s.WindowMS, 2000), 60000)
+	}
+	s.Speed = ParseSpeed(s.Speed)
 	if s.TurnMS != 0 {
 		s.TurnMS = min(max(s.TurnMS, 10000), 600000)
 	}
@@ -153,6 +170,18 @@ func (s Settings) Clamp() Settings {
 type IntentMsg struct {
 	Ver    uint64        `json:"ver"`
 	Intent engine.Intent `json:"intent"`
+}
+
+// Control steers a game's presentation. The host honors it only from the one
+// human seated at an all-bot table (solo play), since it changes everyone's
+// clock.
+type Control struct {
+	// Pause freezes bots and timers (true) or resumes them (false).
+	Pause *bool `json:"pause,omitempty"`
+	// SkipMS is how much presentation the client just skipped.
+	SkipMS int `json:"skip_ms,omitempty"`
+	// Speed changes the room speed mid-game.
+	Speed string `json:"speed,omitempty"`
 }
 
 // Ping and Pong measure latency and keep connections alive.
@@ -237,6 +266,14 @@ type State struct {
 	Seats []Seat `json:"seats,omitempty"`
 	// Offline lists seats whose human is disconnected and being held.
 	Offline []int `json:"offline,omitempty"`
+	// OpensInMS is how long until the decision being waited on opens: the
+	// host holds timers, bots and early intents until every client has had
+	// time to play the events in front of it.
+	OpensInMS int64 `json:"opens_in_ms,omitempty"`
+	// Speed is the room's presentation speed.
+	Speed string `json:"speed,omitempty"`
+	// Paused is set while solo play is paused.
+	Paused bool `json:"paused,omitempty"`
 }
 
 // Events carries engine events redacted for the receiver.

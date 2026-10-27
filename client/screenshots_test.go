@@ -20,13 +20,13 @@ import (
 // scripted drives a rigged engine game into a game screen exactly as the
 // server would: redacted events, then the redacted state.
 type scripted struct {
-	t *testing.T
+	t testing.TB
 	a *App
 	g *engine.Game
 	s *gameScreen
 }
 
-func newScripted(t *testing.T, ascii bool) *scripted {
+func newScripted(t testing.TB, ascii bool) *scripted {
 	t.Helper()
 	cfg := config.Default()
 	cfg.Name = "RUNNER"
@@ -62,12 +62,15 @@ func newScripted(t *testing.T, ascii bool) *scripted {
 }
 
 func (sc *scripted) feed(evs []engine.Event) {
-	sc.s.onEvents(sc.a, engine.RedactAll(evs, 1))
+	for _, e := range engine.RedactAll(evs, 1) {
+		sc.s.enqueue(sc.a, qItem{ev: &e})
+	}
 	st := protocol.State{View: sc.g.View(1)}
 	if sc.g.Phase().Timed() {
 		st.DeadlineMS, st.TimerMS = 5200, 8000
 	}
-	sc.s.onState(sc.a, st)
+	sc.s.enqueue(sc.a, qItem{state: &st})
+	sc.s.drain(sc.a)
 	// Let counters settle and effects finish, as if time passed.
 	for i := range sc.s.shown {
 		sc.s.shown[i] = float64(sc.g.View(1).Players[i].Coins)
@@ -237,7 +240,8 @@ func TestScreenshots(t *testing.T) {
 	fl.a.rng = rand.New(rand.NewPCG(1, 2))
 	write("12-flatlined", shot(fl.a))
 	fl.s.myDeath = time.Time{}
-	fl.s.onGameOver(fl.a, protocol.GameOver{Winner: 1, Names: []string{"VEX", "RUNNER", "MOTH", "GHOSTWIRE", "NULLBYTE"}})
+	_, won := recordedGame(t)
+	fl.s.onGameOver(fl.a, protocol.GameOver{Winner: 1, Names: []string{"VEX", "RUNNER", "MOTH", "GHOSTWIRE", "NULLBYTE"}, Replay: won})
 	fl.s.overAt = fl.a.now.Add(-5 * time.Second)
 	fl.s.stats = config.GameStats{Bluffs: 3, BluffsCaught: 1, Challenges: 2, ChallengesWon: 2, Blocks: 1, CoinsEarned: 17, Coups: 2}
 	fl.s.replayPath = "~/.config/neoncoup/replays/20870101-000000-7K2Q.json"
@@ -249,30 +253,8 @@ func TestScreenshots(t *testing.T) {
 	write("16-taunt-menu", shot(fl.a))
 
 	// Replay viewer over a real recorded game.
-	rp := newScripted(t, false)
-	var steps []protocol.Step
-	brains := make([]bot.Bot, 5)
-	for i := range brains {
-		brains[i] = bot.New(bot.Hard, i, uint64(i)+7, bot.Roster[i])
-		for _, e := range rp.g.StartEvents() {
-			brains[i].Observe(e.Redact(i))
-		}
-	}
-	for !rp.g.Over() && len(steps) < 400 {
-		seat := rp.g.Awaiting()[0]
-		in := brains[seat].Decide(rp.g.View(seat))
-		steps = append(steps, protocol.Step{Seat: seat, Intent: in})
-		evs, err := rp.g.Apply(seat, in)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for i, b := range brains {
-			for _, e := range evs {
-				b.Observe(e.Redact(i))
-			}
-		}
-	}
-	rep := protocol.Replay{Format: protocol.ReplayFormat, Created: rp.a.now, Room: "NEON-7K2Q", Config: rp.g.Config(), Seats: rp.s.seats, Steps: steps}
+	rp, rep := recordedGame(t)
+	steps := rep.Steps
 	rp.a.viewReplay(rep)
 	if rp.a.replay == nil {
 		t.Fatal("replay did not open")
@@ -280,6 +262,28 @@ func TestScreenshots(t *testing.T) {
 	rp.a.replay.pos = len(steps) * 2 / 3
 	rp.a.w, rp.a.h = 120, 40
 	write("19-replay", shot(rp.a))
+
+	// The UX update: a move being announced, the full tracker, inspect and
+	// the settings overlay.
+	an := newScripted(t, false)
+	an.a.rng = rand.New(rand.NewPCG(1, 2))
+	an.s.speed = protocol.SpeedRelaxed
+	an.queueFrames(an.apply(0, engine.ActionIntent(engine.Steal, 2)))
+	an.s.pump(an.a)
+	an.a.now = an.a.now.Add(600 * time.Millisecond)
+	write("21-announcement", shot(an.a))
+	wide := newScripted(t, false)
+	wide.do(0, engine.ActionIntent(engine.Tax, -1))
+	wide.do(1, engine.ChallengeIntent())
+	wide.do(0, engine.RevealIntent(0))
+	wide.a.w, wide.a.h = 160, 45
+	write("22-tracker-160x45", shot(wide.a))
+	wide.a.w, wide.a.h = 120, 40
+	wide.s.inspect = 0
+	write("23-inspect", shot(wide.a))
+	wide.s.inspect = -1
+	wide.s.prefs = &prefsOverlay{}
+	write("24-settings-overlay", shot(wide.a))
 
 	// Tutorial coach.
 	tu := newScripted(t, false)
@@ -321,6 +325,10 @@ var screenTitles = []struct{ file, title string }{
 	{"19-replay", "Replay viewer: every hand face up"},
 	{"20b-tutorial-intro", "Tutorial intro"},
 	{"20-tutorial", "Tutorial coach"},
+	{"21-announcement", "A move being announced: banner, target marked, the rest dimmed"},
+	{"22-tracker-160x45", "The card tracker at 160x45, after a bluff was caught"},
+	{"23-inspect", "Inspect (tab): one player's claims and history"},
+	{"24-settings-overlay", "Settings overlay (esc)"},
 }
 
 // embedScreens rewrites the README section between the screens markers.
@@ -352,4 +360,42 @@ func embedScreens(t *testing.T, readme, dir string) {
 	if err := os.WriteFile(readme, []byte(doc), 0o644); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// recordedGame plays the scripted table to the end with Black ICE bots in
+// every seat, picking the first bot seeds with which seat 1 (you) wins, and
+// returns it with its replay.
+func recordedGame(t *testing.T) (*scripted, protocol.Replay) {
+	t.Helper()
+	for seed := uint64(7); seed < 200; seed++ {
+		rp := newScripted(t, false)
+		var steps []protocol.Step
+		brains := make([]bot.Bot, 5)
+		for i := range brains {
+			brains[i] = bot.New(bot.Hard, i, uint64(i)+seed, bot.Roster[i])
+			for _, e := range rp.g.StartEvents() {
+				brains[i].Observe(e.Redact(i))
+			}
+		}
+		for !rp.g.Over() && len(steps) < 400 {
+			seat := rp.g.Awaiting()[0]
+			in := brains[seat].Decide(rp.g.View(seat))
+			steps = append(steps, protocol.Step{Seat: seat, Intent: in})
+			evs, err := rp.g.Apply(seat, in)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for i, b := range brains {
+				for _, e := range evs {
+					b.Observe(e.Redact(i))
+				}
+			}
+		}
+		if rp.g.Over() && rp.g.Winner() == 1 {
+			return rp, protocol.Replay{Format: protocol.ReplayFormat, Created: rp.a.now, Room: "NEON-7K2Q",
+				Config: rp.g.Config(), Seats: rp.s.seats, Steps: steps, Winner: 1}
+		}
+	}
+	t.Fatal("no seed lets seat 1 win")
+	return nil, protocol.Replay{}
 }

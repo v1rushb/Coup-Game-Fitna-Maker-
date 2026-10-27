@@ -23,7 +23,7 @@ type hostFlags struct {
 	relay                string
 	seats                int
 	noBots               bool
-	level                string
+	level, speed         string
 	window, turn, hold   int
 	magistrate, headless bool
 }
@@ -38,7 +38,8 @@ func (h *hostFlags) register(fs interface {
 	fs.IntVar(&h.seats, "seats", 0, "seats at the table, 2-6 (default 4)")
 	fs.BoolVar(&h.noBots, "no-bots", false, "leave empty seats empty instead of filling them with bots")
 	fs.StringVar(&h.level, "difficulty", "", "bot difficulty: easy, normal, hard")
-	fs.IntVar(&h.window, "window", 0, "challenge/block window in seconds (default 8)")
+	fs.IntVar(&h.window, "window", 0, "challenge/block window in seconds (default: by speed, 12 at relaxed)")
+	fs.StringVar(&h.speed, "speed", "", "presentation speed: relaxed, normal, fast (default from config, relaxed)")
 	fs.IntVar(&h.turn, "turn", -1, "turn timer in seconds; 0 turns it off, -1 uses the config (60)")
 	fs.IntVar(&h.hold, "hold", 0, "seconds a dropped player's seat is held before a bot takes over (default 60)")
 	fs.BoolVar(&h.magistrate, "magistrate", false, "play with the Magistrate variant")
@@ -51,6 +52,13 @@ func (h *hostFlags) settings(e *env) (protocol.Settings, error) {
 	st.WindowMS = e.cfg.WindowMS
 	st.TurnMS = e.cfg.TurnMS
 	st.Magistrate = e.cfg.Magistrate || h.magistrate
+	st.Speed = e.cfg.Speed
+	if h.speed != "" {
+		if protocol.ParseSpeed(h.speed) != h.speed {
+			return st, fmt.Errorf("unknown speed %q (relaxed, normal or fast)", h.speed)
+		}
+		st.Speed = h.speed
+	}
 	if h.seats != 0 {
 		st.MaxPlayers = h.seats
 	}

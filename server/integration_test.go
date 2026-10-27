@@ -21,6 +21,7 @@ func TestNetworkGameWithThreeHeadlessClients(t *testing.T) {
 	srv := server.New(server.Options{Seed: 99})
 	defer srv.Close()
 	settings := protocol.DefaultSettings()
+	settings.Speed = protocol.SpeedInstant
 	settings.FillBots = false
 	settings.MaxPlayers = 3
 	settings.TurnMS = 0
@@ -106,7 +107,7 @@ func TestNetworkGameWithThreeHeadlessClients(t *testing.T) {
 func TestWebSocketVersionMismatchIsRejected(t *testing.T) {
 	srv := server.New(server.Options{})
 	defer srv.Close()
-	room, _ := srv.CreateRoom("", protocol.DefaultSettings())
+	room, _ := srv.CreateRoom("", instantSettings())
 	hs := httptest.NewServer(srv.Handler())
 	defer hs.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -126,4 +127,11 @@ func TestWebSocketVersionMismatchIsRejected(t *testing.T) {
 	if env.Type != protocol.TReject || rej.Code != protocol.RejectVersion {
 		t.Fatalf("%s %+v", env.Type, rej)
 	}
+}
+
+// instantSettings are room settings with presentation pacing off.
+func instantSettings() protocol.Settings {
+	st := protocol.DefaultSettings()
+	st.Speed = protocol.SpeedInstant
+	return st
 }

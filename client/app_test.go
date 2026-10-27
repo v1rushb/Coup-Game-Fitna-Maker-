@@ -313,6 +313,7 @@ func TestSoloGameThroughTheUI(t *testing.T) {
 func TestTutorialThroughTheUI(t *testing.T) {
 	cfg := config.Default()
 	cfg.SkipBoot = true
+	cfg.Speed = protocol.SpeedInstant
 	opts := Options{Backend: &LocalBackend{}, Store: testStore(t), Config: cfg, Version: "test", Start: Start{Kind: StartTutorial}}
 	followCoach := func(r *rand.Rand, g *gameScreen) engine.Intent {
 		if l, ok := g.tutor.lesson(g.v); ok && l.want != nil {

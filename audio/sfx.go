@@ -52,6 +52,13 @@ var effects = map[Effect]effect{
 		{at: 0, ch: '1', note: 45, inst: Instrument{Duty: Duty12, Vol: 10, Decay: 0.15, Sustain: 0.6, Release: 0.05}},
 		{at: 0.15, ch: '1', off: true},
 	},
+	// A bright rising three-note ping: it's your move.
+	SFXYourTurn: {
+		{at: 0, ch: '2', note: 79, inst: blip},
+		{at: 0.07, ch: '2', note: 86, inst: blip},
+		{at: 0.14, ch: '2', note: 91, inst: Instrument{Duty: Duty25, Vol: 10, Decay: 0.25, Sustain: 0.3, Release: 0.15}},
+		{at: 0.14, ch: 't', note: 67, inst: Instrument{Vol: 12, Decay: 0.2, Sustain: 0, Release: 0.05}},
+	},
 }
 
 func glitchFX() effect {

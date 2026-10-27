@@ -32,7 +32,9 @@ type (
 	botMsg   struct {
 		seat int
 		key  string
+		gen  int
 	}
+	openMsg struct{ gen int }
 	holdMsg struct {
 		member string
 		gen    int
@@ -62,6 +64,14 @@ type seat struct {
 	takeover bool // a bot is covering for a disconnected human
 	offline  bool
 	botKey   string
+	botGen   int
+}
+
+// earlyIntent is a decision that arrived before the decision opened. It is
+// applied, in arrival order, once it does.
+type earlyIntent struct {
+	member string
+	msg    protocol.IntentMsg
 }
 
 // Room is one lobby and its games. All fields are owned by the run goroutine.
@@ -89,6 +99,17 @@ type Room struct {
 	deadline   time.Time
 	timerTotal time.Duration
 	timer      *time.Timer
+
+	// The presentation clock. Clients play every event as a timed beat
+	// (protocol.BeatMS); the room holds each new decision until the beats in
+	// front of it are over, using its own clock rather than client acks so
+	// that a slow client can't stall the table.
+	presentEnd time.Time // when every client will have played what was sent
+	opensAt    time.Time // when the decision being waited on opens
+	early      []earlyIntent
+	openGen    int
+	paused     bool
+	pausedAt   time.Time
 
 	idleGen int
 	idle    bool
@@ -252,7 +273,9 @@ func (r *Room) handle(m any) {
 	case timerMsg:
 		r.onTimer(m.gen)
 	case botMsg:
-		r.onBot(m.seat, m.key)
+		r.onBot(m.seat, m.key, m.gen)
+	case openMsg:
+		r.onOpen(m.gen)
 	case holdMsg:
 		r.onHoldExpired(m.member, m.gen)
 	case funcMsg:
@@ -577,6 +600,13 @@ func (r *Room) onFrame(cl *client, env protocol.Envelope) {
 			return
 		}
 		r.onIntent(m, p)
+	case protocol.TControl:
+		var c protocol.Control
+		if err := env.Into(&c); err != nil {
+			r.sendErr(cl, protocol.ErrBadMsg, err.Error())
+			return
+		}
+		r.onControl(m, c)
 	case protocol.TChat:
 		var p protocol.Chat
 		if env.Into(&p) != nil {
@@ -611,8 +641,156 @@ func (r *Room) onIntent(m *member, p protocol.IntentMsg) {
 		r.sendErr(m.cl, protocol.ErrStale, "too late: the table moved on")
 		return
 	}
+	if r.paused || time.Now().Before(r.opensAt) {
+		// Nobody acts before everyone has seen what they're reacting to.
+		r.early = append(r.early, earlyIntent{member: m.id, msg: p})
+		r.armOpen()
+		return
+	}
 	if err := r.apply(m.seat, p.Intent); err != nil {
 		r.sendErr(m.cl, protocol.ErrIllegal, err.Error())
+	}
+}
+
+// armOpen wakes the room when the pending decision opens, to apply early
+// intents.
+func (r *Room) armOpen() {
+	if r.paused {
+		return
+	}
+	r.openGen++
+	gen := r.openGen
+	time.AfterFunc(max(0, time.Until(r.opensAt)), func() { r.post(openMsg{gen: gen}) })
+}
+
+func (r *Room) onOpen(gen int) {
+	if gen != r.openGen || r.paused || r.game == nil {
+		return
+	}
+	if time.Now().Before(r.opensAt) {
+		r.armOpen()
+		return
+	}
+	queued := r.early
+	r.early = nil
+	for _, e := range queued {
+		m := r.memberByID(e.member)
+		if m == nil || m.seat < 0 || r.game == nil {
+			continue
+		}
+		if e.msg.Ver != r.game.Version() {
+			if m.cl != nil {
+				r.sendErr(m.cl, protocol.ErrStale, "too late: the table moved on")
+			}
+			continue
+		}
+		if err := r.apply(m.seat, e.msg.Intent); err != nil && m.cl != nil {
+			r.sendErr(m.cl, protocol.ErrIllegal, err.Error())
+		}
+	}
+}
+
+// soloControl reports whether m may pause or skip: they are the only human
+// seated in the running game.
+func (r *Room) soloControl(m *member) bool {
+	if r.game == nil || m.seat < 0 {
+		return false
+	}
+	for _, s := range r.seats {
+		if s.idx != m.seat && s.memberID != "" {
+			return false
+		}
+	}
+	return true
+}
+
+func (r *Room) onControl(m *member, c protocol.Control) {
+	if !r.soloControl(m) {
+		r.sendErr(m.cl, protocol.ErrIllegal, "pause, skip and speed changes work in solo play only")
+		return
+	}
+	if c.Speed != "" {
+		r.settings.Speed = protocol.ParseSpeed(c.Speed)
+	}
+	if c.SkipMS > 0 {
+		r.skip(time.Duration(c.SkipMS) * time.Millisecond)
+	}
+	if c.Pause != nil {
+		if *c.Pause {
+			r.pause()
+		} else {
+			r.resume()
+		}
+	}
+	r.broadcastState()
+}
+
+// pause freezes the table: the timer stops and bots hold their moves.
+func (r *Room) pause() {
+	if r.paused {
+		return
+	}
+	r.paused = true
+	r.pausedAt = time.Now()
+	r.disarmTimer()
+	r.openGen++
+}
+
+// resume restarts the table, shifting every pending time by the pause.
+func (r *Room) resume() {
+	if !r.paused {
+		return
+	}
+	d := time.Since(r.pausedAt)
+	r.paused = false
+	for _, t := range []*time.Time{&r.presentEnd, &r.opensAt} {
+		if t.After(r.pausedAt) {
+			*t = t.Add(d)
+		}
+	}
+	if !r.deadline.IsZero() {
+		r.deadline = r.deadline.Add(d)
+		r.armTimer()
+	}
+	r.reschedule()
+}
+
+// skip moves the presentation clock forward by d (the client skipped a beat).
+// A decision that hasn't opened yet opens sooner by the same amount; one that
+// is already open keeps its full window.
+func (r *Room) skip(d time.Duration) {
+	now := time.Now()
+	if !r.presentEnd.After(now) {
+		return
+	}
+	d = min(d, r.presentEnd.Sub(now))
+	r.presentEnd = r.presentEnd.Add(-d)
+	if !r.opensAt.After(now) {
+		return
+	}
+	opens := r.opensAt.Add(-d)
+	if opens.Before(now) {
+		opens = now
+	}
+	moved := r.opensAt.Sub(opens)
+	r.opensAt = opens
+	if !r.deadline.IsZero() {
+		r.deadline = r.deadline.Add(-moved)
+		r.disarmTimer()
+		r.armTimer()
+	}
+	r.reschedule()
+}
+
+// reschedule re-arms every bot and the early-intent wake-up after the clock
+// moved.
+func (r *Room) reschedule() {
+	for _, s := range r.seats {
+		s.botKey = ""
+	}
+	r.schedule()
+	if len(r.early) > 0 {
+		r.armOpen()
 	}
 }
 
@@ -689,6 +867,8 @@ func (r *Room) startGame() error {
 	r.started = time.Now()
 	r.replay = protocol.Replay{Format: protocol.ReplayFormat, Created: r.started.UTC(), Room: r.code, Config: cfg, Seats: r.seatInfo(), Winner: -1}
 	r.timerKey = ""
+	r.presentEnd, r.opensAt = r.started, r.started
+	r.early, r.paused = nil, false
 	r.log.Info("game started", "game", r.gameNo, "seats", len(r.seats), "bots", bots)
 	for _, m := range r.members {
 		r.sendGameStart(m)
@@ -730,6 +910,11 @@ func (r *Room) apply(seatIdx int, in engine.Intent) error {
 }
 
 func (r *Room) afterChange(evs []engine.Event) {
+	now := time.Now()
+	if r.presentEnd.Before(now) {
+		r.presentEnd = now
+	}
+	r.presentEnd = r.presentEnd.Add(time.Duration(protocol.PresentMS(evs, r.settings.Speed)) * time.Millisecond)
 	// Everyone sees the events first, each redacted for their own seat.
 	for _, m := range r.members {
 		if m.cl == nil {
@@ -783,6 +968,7 @@ func (r *Room) resetToLobby() {
 	r.game = nil
 	r.seats = nil
 	r.stopTimer()
+	r.early, r.paused = nil, false
 	var gone []*member
 	for _, m := range r.members {
 		m.seat = -1
@@ -814,17 +1000,34 @@ func (r *Room) decisionKey() string {
 	return key
 }
 
-func (r *Room) stopTimer() {
+// disarmTimer cancels the pending timer callback but keeps the deadline.
+func (r *Room) disarmTimer() {
 	if r.timer != nil {
 		r.timer.Stop()
 		r.timer = nil
 	}
 	r.timerGen++
+}
+
+func (r *Room) stopTimer() {
+	r.disarmTimer()
 	r.timerKey = ""
 	r.deadline = time.Time{}
 	r.timerTotal = 0
 }
 
+// armTimer schedules the callback for the current deadline.
+func (r *Room) armTimer() {
+	if r.paused || r.deadline.IsZero() {
+		return
+	}
+	gen := r.timerGen
+	r.timer = time.AfterFunc(max(0, time.Until(r.deadline)), func() { r.post(timerMsg{gen: gen}) })
+}
+
+// updateTimer opens a new decision when the game moved on to one: it opens
+// once the presentation in front of it is over, and its timer (a reaction
+// window or the turn timer) runs from then.
 func (r *Room) updateTimer() {
 	key := r.decisionKey()
 	if key == r.timerKey {
@@ -832,19 +1035,19 @@ func (r *Room) updateTimer() {
 	}
 	r.stopTimer()
 	r.timerKey = key
+	r.opensAt = r.presentEnd
 	var d time.Duration
 	if r.game.Phase().Timed() {
-		d = time.Duration(r.settings.WindowMS) * time.Millisecond
+		d = r.settings.Window()
 	} else if r.settings.TurnMS > 0 {
 		d = time.Duration(r.settings.TurnMS) * time.Millisecond
 	}
 	if d <= 0 {
 		return
 	}
-	r.deadline = time.Now().Add(d)
+	r.deadline = r.opensAt.Add(d)
 	r.timerTotal = d
-	gen := r.timerGen
-	r.timer = time.AfterFunc(d, func() { r.post(timerMsg{gen: gen}) })
+	r.armTimer()
 }
 
 func (r *Room) onTimer(gen int) {
@@ -873,17 +1076,23 @@ func (r *Room) onTimer(gen int) {
 	}
 }
 
+// think is a bot's human-like delay, scaled by the room speed. Instant
+// rooms keep the server's raw bounds, which tests set themselves.
 func (r *Room) think() time.Duration {
 	lo, hi := r.srv.opts.ThinkMin, r.srv.opts.ThinkMax
+	if f := protocol.SpeedFactor(r.settings.Speed); f > 0 {
+		lo, hi = time.Duration(float64(lo)*f), time.Duration(float64(hi)*f)
+	}
 	if hi <= lo {
 		return lo
 	}
 	return lo + time.Duration(r.rng.Int64N(int64(hi-lo)))
 }
 
-// schedule gives every bot that is being waited on a decision tick.
+// schedule gives every bot that is being waited on a decision tick. Bots
+// start thinking when the decision opens, like everyone else.
 func (r *Room) schedule() {
-	if r.game == nil || r.game.Over() {
+	if r.game == nil || r.game.Over() || r.paused {
 		return
 	}
 	key := r.decisionKey()
@@ -892,17 +1101,23 @@ func (r *Room) schedule() {
 			continue
 		}
 		s.botKey = key
-		idx := s.idx
-		time.AfterFunc(r.think(), func() { r.post(botMsg{seat: idx, key: key}) })
+		s.botGen++
+		idx, gen := s.idx, s.botGen
+		delay := max(0, time.Until(r.opensAt)) + r.think()
+		time.AfterFunc(delay, func() { r.post(botMsg{seat: idx, key: key, gen: gen}) })
 	}
 }
 
-func (r *Room) onBot(idx int, key string) {
+func (r *Room) onBot(idx int, key string, gen int) {
 	if r.game == nil || r.game.Over() || idx >= len(r.seats) {
 		return
 	}
 	s := r.seats[idx]
-	if s.bot == nil || !r.game.IsAwaiting(idx) || r.decisionKey() != key {
+	if s.bot == nil || !r.game.IsAwaiting(idx) || r.decisionKey() != key || gen != s.botGen {
+		return
+	}
+	if r.paused {
+		s.botKey = "" // resume re-arms it
 		return
 	}
 	in := s.bot.Decide(r.game.View(idx))
@@ -947,11 +1162,16 @@ func (r *Room) broadcastLobby() {
 }
 
 func (r *Room) stateFor(seatIdx int) protocol.State {
-	st := protocol.State{View: r.game.View(seatIdx), Seats: r.seatInfo()}
+	st := protocol.State{View: r.game.View(seatIdx), Seats: r.seatInfo(), Speed: r.settings.Speed, Paused: r.paused}
+	now := time.Now()
+	if r.paused {
+		now = r.pausedAt // the clock stands still
+	}
 	if !r.deadline.IsZero() {
-		st.DeadlineMS = max(0, time.Until(r.deadline).Milliseconds())
+		st.DeadlineMS = max(0, r.deadline.Sub(now).Milliseconds())
 		st.TimerMS = r.timerTotal.Milliseconds()
 	}
+	st.OpensInMS = max(0, r.opensAt.Sub(now).Milliseconds())
 	for _, s := range r.seats {
 		if s.offline {
 			st.Offline = append(st.Offline, s.idx)

@@ -95,7 +95,9 @@ func (l *lobbyScreen) key(a *App, msg tea.KeyPressMsg) tea.Cmd {
 	case "d":
 		st.BotLevel, changed = cycle(levels, st.BotLevel, 1), host
 	case "w":
-		st.WindowMS, changed = cycle([]int{4000, 6000, 8000, 10000, 15000, 20000}, st.WindowMS, 1), host
+		st.WindowMS, changed = cycle(windowOptions, st.WindowMS, 1), host
+	case "v":
+		st.Speed, changed = cycle(protocol.Speeds, st.Speed, 1), host
 	case "t":
 		st.TurnMS, changed = cycle(turnOptions, st.TurnMS, 1), host
 	case "g":
@@ -183,14 +185,15 @@ func (l *lobbyScreen) view(a *App) string {
 	settings := []string{
 		fmt.Sprintf("seats        %d", st.MaxPlayers),
 		fmt.Sprintf("bot fill     %s (%s)", onOff(st.FillBots), st.BotLevel),
-		fmt.Sprintf("window       %ds", st.WindowMS/1000),
+		fmt.Sprintf("speed        %s", speedTitle(st.Speed)),
+		fmt.Sprintf("window       %s", windowLabel(st.WindowMS, st.Speed)),
 		fmt.Sprintf("turn timer   %s", turn),
 		fmt.Sprintf("magistrate   %s", onOff(st.Magistrate)),
 		fmt.Sprintf("seat hold    %ds", st.ReconnectS),
 	}
 	keys := "enter ready/unready · tab chat · q leave"
 	if a.welcome.Host {
-		keys = "enter START · +/- seats · f bot fill · d difficulty\nw window · t turn timer · g magistrate · tab chat · q leave"
+		keys = "enter START · +/- seats · f bot fill · d difficulty · v speed\nw window · t turn timer · g magistrate · tab chat · q leave"
 	}
 	setBox := t.Box.Width(40).Render(t.Accent.Render("TABLE RULES") + "\n\n" + t.Text.Render(strings.Join(settings, "\n")))
 

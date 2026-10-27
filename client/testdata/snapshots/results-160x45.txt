@@ -1,0 +1,45 @@
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 1  ▶ VEX                                                                                ♪✖ no audio  ? help  q leave
+                        ╭────────────────────────────────╮╭────────────────────────────────╮                        ╭──────────────────────────────────────────╮
+                        │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │                        │ NETLOG                                   │
+                        │ ¢2                          ●● ││ ¢2                          ●● │                        │ // GAME 3 // 5 RUNNERS // JACKED IN      │
+                        │ no claims yet                  ││ no claims yet                  │                        │ ── TURN 1 · VEX ──                       │
+                        │                ╔═══════════════════════════════════════════════════════════════════════════╗                                         │
+                        ╰────────────────║                                                                           ║                                         │
+                   ╔═════════════════════║       SYSTEM SEIZED                                                       ║                                         │
+                   ║ > VEX is choosing a ║                                                                           ║                                         │
+                   ║                     ║    winner: RUNNER   turns: 1                                              ║                                         │
+                   ║ COURT TRACKER // rev║    your challenges: 0 (0 won)   blocks: 0   coins earned: 0   coups: 0    ║                                         │
+                   ║ ┌──────────┐ ┌──────║                                                                           ║                                         │
+                   ║ │ DUKE    ◆│ │ ASSAS║    THE CARDS // every hand, face up                                       ║                                         │
+                   ║ │ ▄█▀▀(◉)═╗│ │  ▄█▓▓║    VEX          DUKE        CONTESSA    bluffs: 2 got away, 0 caught      ║                                         │
+                   ║ │ ▓▓█[¢]█▓▓│ │  █ ══║    YOU          CONTESSA    CAPTAIN     played it straight                ║                                         │
+╭─────────────────╮║ │TAX +3¢   │ │KILL 3║    MOTH         AMBASSADOR  CAPTAIN     played it straight                ║                                         │
+│   MOTH          │║ │BLK AID   │ │-1 INF║    GHOSTWIRE    CAPTAIN     CONTESSA    played it straight                ║                                         │
+│ ¢2           ●● │║ └──────────┘ └──────║    NULLBYTE     DUKE        ASSASSIN    played it straight                ║                                         │
+│ no claims yet   │║ REVEALED 0/3 REVEALE║                                                                           ║                                         │
+│                 │║ UNSEEN 2     UNSEEN ║    KEY MOMENTS                                                            ║                                         │
+│                 │║                     ║    T6  VEX assassinated your CAPTAIN                                      ║                                         │
+│                 │║                     ║    T7  MOTH called your DUKE: it was real                                 ║                                         │
+╰─────────────────╯║                     ║    T8  NULLBYTE called MOTH's DUKE: it was real                           ║                                         │
+                   ║                     ║    T9  VEX called MOTH's AMBASSADOR: it was real                          ║                                         │
+                   ║                     ║    T12 YOU couped MOTH                                                    ║                                         │
+                   ║                     ║    T12 MOTH flatlined                                                     ║                                         │
+                   ║                     ║    T22 NULLBYTE couped GHOSTWIRE                                          ║                                         │
+                   ║                     ║    T23 GHOSTWIRE called VEX's ASSASSIN: it was real                       ║                                         │
+                   ║                     ║    T23 GHOSTWIRE flatlined                                                ║                                         │
+                   ║                     ║    T34 NULLBYTE couped VEX                                                ║                                         │
+                   ╚═════════════════════║    T34 VEX flatlined                                                      ║                                         │
+╔════════════════╗╔════════════════╗  RUN║    T39 YOU couped NULLBYTE                                                ║                                         │
+║ DUKE          ◆║║ CAPTAIN       ▲║  ¢ 2║    T39 NULLBYTE flatlined                                                 ║                                         │
+║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  inf║    T39 YOU seized the city                                                ║─────────────────────────────────────────╯
+║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║     ║    replay saved: ~/.config/neoncoup/replays/20870101-000000-7K2Q.json     ║─────────────────────────────────────────╮
+║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║  you║                                                                           ║                                         │
+║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  DUK║    [r] rematch  [v] replay  [enter] lobby  [q] leave                      ║enter: chat · t: taunt                   │
+║   ▀█▄═══▄▄█▀ ║ ║║  ▄▓▓▓█▓▓▓▓▓▓▓█▄║     ║                                                                           ║                                         │
+║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  █▓▓▓█▓▓┃┃▓▓▓██║     ╚═══════════════════════════════════════════════════════════════════════════╝                                         │
+║────────────────║║────────────────║                                                                                │                                          │
+║ TAX +3¢        ║║ STEAL 2¢       ║                                                                                │                                          │
+║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                                                                │                                          │
+╚════════════════╝╚════════════════╝                                                                                ╰──────────────────────────────────────────╯
+ VEX is choosing a move ⠋
+ [t]TAUNT  [?]HELP

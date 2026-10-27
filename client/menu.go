@@ -185,6 +185,11 @@ func (f *form) key(a *App, fields []field, msg tea.KeyPressMsg) string {
 }
 
 func (f *form) view(a *App, title, sub string, fields []field, submit string) string {
+	return lipgloss.Place(a.w, a.h, lipgloss.Center, lipgloss.Center, f.box(a, title, sub, fields, submit))
+}
+
+// box renders the form on its own, for overlays.
+func (f *form) box(a *App, title, sub string, fields []field, submit string) string {
 	var rows []string
 	for i, fl := range fields {
 		label := a.t.Muted.Render(fmt.Sprintf("%-16s", fl.label))
@@ -213,8 +218,8 @@ func (f *form) view(a *App, title, sub string, fields []field, submit string) st
 	body := lipgloss.JoinVertical(lipgloss.Left,
 		a.t.Title.Render(title), a.t.Muted.Render(sub), "",
 		strings.Join(rows, "\n"), "", help, "", a.t.Faint.Render(a.t.A(keys)))
-	box := lipgloss.NewStyle().Border(a.t.RoundBorder).BorderForeground(theme.Magenta).Padding(1, 3).Width(72).Render(body)
-	return lipgloss.Place(a.w, a.h, lipgloss.Center, lipgloss.Center, a.t.A(box))
+	box := lipgloss.NewStyle().Border(a.t.RoundBorder).BorderForeground(theme.Magenta).Background(theme.Panel).Padding(1, 3).Width(72).Render(body)
+	return a.t.A(box)
 }
 
 func cycle[T comparable](opts []T, cur T, d int) T {
@@ -252,12 +257,38 @@ type soloSetup struct {
 	bots       int
 	level      string
 	magistrate bool
-	window     int
+	windowMS   int // 0 = auto
+	speed      string
 }
 
 func newSoloSetup(c config.Config) soloSetup {
-	return soloSetup{bots: max(1, min(5, c.Bots)), level: c.BotLevel, magistrate: c.Magistrate, window: max(4, c.WindowMS/1000)}
+	return soloSetup{bots: max(1, min(5, c.Bots)), level: c.BotLevel, magistrate: c.Magistrate, windowMS: c.WindowMS, speed: protocol.ParseSpeed(c.Speed)}
 }
+
+// windowOptions are the reaction windows a player can pick; 0 is auto.
+var windowOptions = []int{0, 4000, 6000, 8000, 10000, 12000, 15000, 20000, 30000}
+
+// windowLabel describes a reaction window setting.
+func windowLabel(ms int, speed string) string {
+	if ms == 0 {
+		return fmt.Sprintf("AUTO (%ds)", int(protocol.AutoWindow(speed).Seconds()))
+	}
+	return fmt.Sprintf("%ds", ms/1000)
+}
+
+func speedTitle(s string) string {
+	switch protocol.ParseSpeed(s) {
+	case protocol.SpeedNormal:
+		return "NORMAL"
+	case protocol.SpeedFast:
+		return "FAST"
+	case protocol.SpeedInstant:
+		return "INSTANT"
+	}
+	return "RELAXED"
+}
+
+const speedHelp = "How fast events play out. Relaxed gives every move time to land; Fast is for veterans."
 
 func (s *soloSetup) fields() []field {
 	return []field{
@@ -270,9 +301,12 @@ func (s *soloSetup) fields() []field {
 		{label: "Magistrate", value: func() string { return onOff(s.magistrate) },
 			left: func() { s.magistrate = !s.magistrate }, right: func() { s.magistrate = !s.magistrate },
 			help: "Variant: 18-card deck. Magistrate audits rich players (-2¢) and blocks Tax."},
-		{label: "Reaction window", value: func() string { return fmt.Sprintf("%ds", s.window) },
-			left: func() { s.window = max(4, s.window-1) }, right: func() { s.window = min(30, s.window+1) },
-			help: "Time to challenge or block before the table moves on."},
+		{label: "Speed", value: func() string { return speedTitle(s.speed) },
+			left: func() { s.speed = cycle(protocol.Speeds, s.speed, -1) }, right: func() { s.speed = cycle(protocol.Speeds, s.speed, 1) },
+			help: speedHelp},
+		{label: "Reaction window", value: func() string { return windowLabel(s.windowMS, s.speed) },
+			left: func() { s.windowMS = cycle(windowOptions, s.windowMS, -1) }, right: func() { s.windowMS = cycle(windowOptions, s.windowMS, 1) },
+			help: "Time to challenge or block before the table moves on. Auto follows the speed."},
 	}
 }
 
@@ -281,9 +315,9 @@ func (s *soloSetup) key(a *App, msg tea.KeyPressMsg) tea.Cmd {
 	case "back":
 		a.goTo(scrMenu)
 	case "submit":
-		a.cfg.Bots, a.cfg.BotLevel, a.cfg.Magistrate, a.cfg.WindowMS = s.bots, s.level, s.magistrate, s.window*1000
+		a.cfg.Bots, a.cfg.BotLevel, a.cfg.Magistrate, a.cfg.WindowMS, a.cfg.Speed = s.bots, s.level, s.magistrate, s.windowMS, s.speed
 		a.saveConfig()
-		return a.startSolo(SoloOptions{Bots: s.bots, Level: s.level, Magistrate: s.magistrate, WindowMS: s.window * 1000})
+		return a.startSolo(SoloOptions{Bots: s.bots, Level: s.level, Magistrate: s.magistrate, WindowMS: s.windowMS, Speed: s.speed})
 	}
 	return nil
 }
@@ -307,6 +341,7 @@ func newHostSetup(c config.Config) hostSetup {
 	st.WindowMS = c.WindowMS
 	st.TurnMS = c.TurnMS
 	st.Magistrate = c.Magistrate
+	st.Speed = c.Speed
 	h := hostSetup{st: st.Clamp(), port: newLineInput("", 5), relay: newLineInput("", 120)}
 	h.port.Set(strconv.Itoa(c.Port))
 	h.relay.Set(c.Relay)
@@ -327,9 +362,12 @@ func (h *hostSetup) fields() []field {
 			help: "Empty seats get bots when you start."},
 		{label: "Bot difficulty", value: func() string { return levelTitle(st.BotLevel) },
 			left: func() { st.BotLevel = cycle(levels, st.BotLevel, -1) }, right: func() { st.BotLevel = cycle(levels, st.BotLevel, 1) }},
-		{label: "Reaction window", value: func() string { return fmt.Sprintf("%ds", st.WindowMS/1000) },
-			left: func() { st.WindowMS = max(2000, st.WindowMS-1000) }, right: func() { st.WindowMS = min(60000, st.WindowMS+1000) },
-			help: "Seconds to challenge or block."},
+		{label: "Speed", value: func() string { return speedTitle(st.Speed) },
+			left: func() { st.Speed = cycle(protocol.Speeds, st.Speed, -1) }, right: func() { st.Speed = cycle(protocol.Speeds, st.Speed, 1) },
+			help: speedHelp + " Everyone at the table plays at this speed."},
+		{label: "Reaction window", value: func() string { return windowLabel(st.WindowMS, st.Speed) },
+			left: func() { st.WindowMS = cycle(windowOptions, st.WindowMS, -1) }, right: func() { st.WindowMS = cycle(windowOptions, st.WindowMS, 1) },
+			help: "Seconds to challenge or block. Auto follows the speed."},
 		{label: "Turn timer", value: func() string {
 			if st.TurnMS == 0 {
 				return "OFF"
@@ -359,7 +397,7 @@ func (h *hostSetup) key(a *App, msg tea.KeyPressMsg) tea.Cmd {
 			return nil
 		}
 		a.cfg.Port, a.cfg.Relay = port, strings.TrimSpace(h.relay.Value())
-		a.cfg.BotLevel, a.cfg.WindowMS, a.cfg.TurnMS, a.cfg.Magistrate = h.st.BotLevel, h.st.WindowMS, h.st.TurnMS, h.st.Magistrate
+		a.cfg.BotLevel, a.cfg.WindowMS, a.cfg.TurnMS, a.cfg.Magistrate, a.cfg.Speed = h.st.BotLevel, h.st.WindowMS, h.st.TurnMS, h.st.Magistrate, h.st.Speed
 		a.saveConfig()
 		return a.startHost(HostOptions{Settings: h.st.Clamp(), Port: port, Relay: a.cfg.Relay})
 	}
@@ -444,20 +482,35 @@ func (s *settingsScreen) fields(a *App) []field {
 	c := &s.cfg
 	fs := []field{{label: "Nickname", text: &s.name, help: "Shown to other players (e to edit)."}}
 	if !a.opts.Remote {
+		pct := func(v float64) func() string { return func() string { return fmt.Sprintf("%d%%", int(v*100+0.5)) } }
 		fs = append(fs,
-			field{label: "Volume", value: func() string { return fmt.Sprintf("%d%%", int(c.Volume*100+0.5)) },
+			field{label: "Master volume", value: func() string { return pct(c.Volume)() },
 				left:  func() { c.Volume = max(0, c.Volume-0.1); a.sound.SetVolume(c.Volume); a.sound.SFX(audio.SFXCoin) },
 				right: func() { c.Volume = min(1, c.Volume+0.1); a.sound.SetVolume(c.Volume); a.sound.SFX(audio.SFXCoin) }},
+			field{label: "Music volume", value: func() string { return pct(c.MusicVolume)() },
+				left:  func() { c.MusicVolume = max(0, c.MusicVolume-0.1); a.sound.SetMusicVolume(c.MusicVolume) },
+				right: func() { c.MusicVolume = min(1, c.MusicVolume+0.1); a.sound.SetMusicVolume(c.MusicVolume) },
+				help:  "In game, n skips to the next track."},
+			field{label: "SFX volume", value: func() string { return pct(c.SFXVolume)() },
+				left: func() {
+					c.SFXVolume = max(0, c.SFXVolume-0.1)
+					a.sound.SetSFXVolume(c.SFXVolume)
+					a.sound.SFX(audio.SFXCoin)
+				},
+				right: func() {
+					c.SFXVolume = min(1, c.SFXVolume+0.1)
+					a.sound.SetSFXVolume(c.SFXVolume)
+					a.sound.SFX(audio.SFXCoin)
+				}},
 			field{label: "Muted", value: func() string { return onOff(c.Muted) },
 				left: func() { c.Muted = !c.Muted; a.sound.SetMuted(c.Muted) }, right: func() { c.Muted = !c.Muted; a.sound.SetMuted(c.Muted) }})
 	}
+	fs = append(fs, a.prefFields(c, false)...)
 	fs = append(fs,
 		field{label: "CRT scanlines", value: func() string { return onOff(c.CRT) },
 			left: func() { c.CRT = !c.CRT }, right: func() { c.CRT = !c.CRT }, help: "Also toggled in game with s."},
 		field{label: "ASCII mode", value: func() string { return onOff(c.ASCII) },
 			left: func() { c.ASCII = !c.ASCII }, right: func() { c.ASCII = !c.ASCII }, help: "Plain ASCII instead of box drawing (same as --ascii)."},
-		field{label: "Reduce motion", value: func() string { return onOff(c.ReduceMotion) },
-			left: func() { c.ReduceMotion = !c.ReduceMotion }, right: func() { c.ReduceMotion = !c.ReduceMotion }, help: "No screen jolts or glitches."},
 		field{label: "Skip boot", value: func() string { return onOff(c.SkipBoot) },
 			left: func() { c.SkipBoot = !c.SkipBoot }, right: func() { c.SkipBoot = !c.SkipBoot }},
 	)

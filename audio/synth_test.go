@@ -65,7 +65,7 @@ func TestPatternsLineUp(t *testing.T) {
 }
 
 func TestSongsRenderCleanly(t *testing.T) {
-	for _, song := range []Song{SongMenu, SongGame, SongVictory, SongDefeat} {
+	for _, song := range []Song{SongMenu, SongGame, SongVictory, SongDefeat, SongTheme, SongRain, SongOverclock, SongRemix} {
 		s := NewSynth(SampleRate, 1)
 		s.SetVolume(1)
 		s.Music(song)
@@ -89,7 +89,7 @@ func TestJinglesEnd(t *testing.T) {
 		s.SetVolume(1)
 		s.Music(song)
 		render(s, 6)
-		if !s.seq.done {
+		if !s.deck().seq.done {
 			t.Fatalf("jingle %d still playing after 6s", song)
 		}
 		_, rms := stats(render(s, 1))
@@ -105,40 +105,41 @@ func TestSequencerTiming(t *testing.T) {
 	stepLen := 60 / menuSong.BPM / 4 // 16th note at 96 BPM
 	// Render to the middle of step 5.
 	render(s, stepLen*5.5)
-	if s.seq.step != 5 || s.seq.patName != "A" {
-		t.Fatalf("at %.3fs the sequencer is on %s/%d, want A/5", s.Now(), s.seq.patName, s.seq.step)
+	seq := &s.deck().seq
+	if seq.step != 5 || seq.patName != "A" {
+		t.Fatalf("at %.3fs the sequencer is on %s/%d, want A/5", s.Now(), seq.patName, seq.step)
 	}
 	render(s, stepLen*32)
-	if s.seq.patName != "B" || s.seq.step != 5 {
-		t.Fatalf("after a pattern: %s/%d, want B/5", s.seq.patName, s.seq.step)
+	if seq.patName != "B" || seq.step != 5 {
+		t.Fatalf("after a pattern: %s/%d, want B/5", seq.patName, seq.step)
 	}
 }
 
 func TestGameLoopVaries(t *testing.T) {
 	s := NewSynth(SampleRate, 42)
-	s.Music(SongGame)
-	render(s, 150)
+	s.Music(SongTheme)
+	render(s, 140)
 	seen := map[string]bool{}
-	for _, p := range s.seq.played {
+	for _, p := range s.deck().seq.played {
 		seen[p] = true
 	}
 	for _, want := range []string{"A1", "A2", "B1", "B2", "C1", "D1"} {
 		if !seen[want] {
-			t.Errorf("section %s never played in 150s: %v", want, s.seq.played)
+			t.Errorf("section %s never played in 150s: %v", want, s.deck().seq.played)
 		}
 	}
 	// Sections stay paired (x1 is always followed by x2).
-	h := s.seq.played
+	h := s.deck().seq.played
 	for i := 0; i+1 < len(h); i++ {
 		if h[i][1] == '1' && h[i+1] != string(h[i][0])+"2" {
 			t.Fatalf("%s followed by %s", h[i], h[i+1])
 		}
 	}
 	// Re-requesting the same song does not restart it.
-	pos := s.seq.played
-	s.Music(SongGame)
+	pos := s.deck().seq.played
+	s.Music(SongTheme)
 	render(s, 0.1)
-	if len(s.seq.played) < len(pos) {
+	if len(s.deck().seq.played) < len(pos) {
 		t.Fatal("song restarted")
 	}
 }
@@ -297,13 +298,14 @@ func TestWriteWAV(t *testing.T) {
 		binary.LittleEndian.PutUint32(hdr[40:], uint32(len(data)))
 		_, _ = f.Write(append(hdr, data...))
 	}
-	for name, song := range map[string]Song{"menu": SongMenu, "game": SongGame, "victory": SongVictory, "defeat": SongDefeat} {
+	for name, song := range map[string]Song{"menu": SongMenu, "theme": SongTheme, "rain": SongRain, "overclock": SongOverclock,
+		"remix": SongRemix, "victory": SongVictory, "defeat": SongDefeat} {
 		s := NewSynth(SampleRate, 3)
 		s.SetVolume(0.8)
 		s.Music(song)
 		write("song-"+name, render(s, 40))
 	}
-	names := map[Effect]string{SFXCoin: "coin", SFXFlip: "flip", SFXChallenge: "challenge", SFXBlock: "block", SFXGlitch: "glitch", SFXSelect: "select", SFXTick: "tick", SFXError: "error"}
+	names := map[Effect]string{SFXCoin: "coin", SFXFlip: "flip", SFXChallenge: "challenge", SFXBlock: "block", SFXGlitch: "glitch", SFXSelect: "select", SFXTick: "tick", SFXError: "error", SFXYourTurn: "your_turn"}
 	for e, name := range names {
 		s := NewSynth(SampleRate, 3)
 		s.SetVolume(0.8)

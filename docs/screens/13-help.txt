@@ -1,6 +1,3 @@
-
-
-
         ╭─────────────────────────────────────────────────────────────────────────────────╮
         │                                                                                 │
         │  CONTROLS                                                                       │
@@ -10,9 +7,11 @@
         │   b       block (then pick the card if there's a choice)                        │
         │   p       pass                                                                  │
         │   1 / 2   pick a card when losing influence or proving a claim                  │
-        │   enter   chat    t  taunt menu                                                 │
-        │   m       mute    s  CRT scanlines                                              │
-        │   esc     cancel a choice    q  leave                                           │
+        │   tab     inspect a player: claims, history, face-up cards                      │
+        │   space   skip the current beat (solo)    P  pause (solo)                       │
+        │   enter   chat    t  taunt menu    pgup/pgdn  scroll the log                    │
+        │   m       mute    n  next track    s  CRT scanlines                             │
+        │   esc     cancel a choice, or open settings    q  leave                         │
         │   ?       this help                                                             │
         │                                                                                 │
         │  RULES IN ONE BREATH                                                            │
@@ -22,6 +21,10 @@
         │  the bluffer a card. 7 coins buys a Coup; at 10 you must Coup. Lose             │
         │  both cards and you're out. Last runner standing wins.                          │
         │                                                                                 │
-        │  any key to close                                                               │
+        │  READING THE TABLE                                                              │
+        │  The bottom bar says what's happening, what you can do and what it              │
+        │  risks. The tracker in the middle counts each character: REVEALED is            │
+        │  face up, UNSEEN could be in a rival's hand or the deck. UNSEEN 0 means         │
+        │  any claim of it is a bluff. Badges on a rival's panel show what                │
+        │  they've claimed this game.                                                     │
         │                                                                                 │
-        ╰─────────────────────────────────────────────────────────────────────────────────╯

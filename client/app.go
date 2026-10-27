@@ -136,12 +136,22 @@ type App struct {
 	toast       string
 	toastUntil  time.Time
 	retrying    int
+
+	// nowPlaying is the corner toast for a new in-game track.
+	nowPlaying string
+	npUntil    time.Time
 }
+
+// audioNoticeMsg carries a track title from the audio engine.
+type audioNoticeMsg string
 
 // New builds the app.
 func New(opts Options) *App {
 	if opts.Sound == nil {
 		opts.Sound = audio.Nop{}
+	}
+	if !opts.Remote {
+		theme.Use(opts.Config.Palette)
 	}
 	t := theme.New(opts.ASCII || opts.Config.ASCII)
 	a := &App{
@@ -156,6 +166,8 @@ func New(opts Options) *App {
 		h:     MinHeight,
 	}
 	a.sound.SetVolume(a.cfg.Volume)
+	a.sound.SetMusicVolume(a.cfg.MusicVolume)
+	a.sound.SetSFXVolume(a.cfg.SFXVolume)
 	a.sound.SetMuted(a.cfg.Muted)
 	a.boot = newBoot(a)
 	a.menu = newMenu()
@@ -169,10 +181,25 @@ func New(opts Options) *App {
 // Init starts the boot sequence.
 func (a *App) Init() tea.Cmd {
 	if a.cfg.SkipBoot {
-		return tea.Batch(a.afterBoot(), a.kick())
+		return tea.Batch(a.afterBoot(), a.kick(), a.listenAudio())
 	}
 	a.sound.Music(audio.SongMenu)
-	return a.kick()
+	return tea.Batch(a.kick(), a.listenAudio())
+}
+
+// listenAudio waits for the next "now playing" notice, if there is audio.
+func (a *App) listenAudio() tea.Cmd {
+	ch := a.sound.Notices()
+	if ch == nil {
+		return nil
+	}
+	return func() tea.Msg {
+		title, ok := <-ch
+		if !ok {
+			return nil
+		}
+		return audioNoticeMsg(title)
+	}
 }
 
 // kick starts the frame ticker if it is not running.
@@ -186,18 +213,22 @@ func (a *App) kick() tea.Cmd {
 
 // tickInterval is the frame time for the current screen. Ambient screens
 // (menu, lobby) animate at half rate to keep CPU low; the table gets the
-// full 20 fps for its effects.
+// full 20 fps while something on it moves, half rate for countdowns.
 func (a *App) tickInterval() time.Duration {
 	switch a.scr {
 	case scrMenu, scrLobby, scrConnecting:
 		return 2 * time.Second / fps
+	case scrGame:
+		if a.game != nil && !a.game.smooth(a) && a.toast == "" {
+			return 2 * time.Second / fps
+		}
 	}
 	return time.Second / fps
 }
 
 // animating reports whether anything on screen moves.
 func (a *App) animating() bool {
-	if a.toast != "" || a.retrying > 0 {
+	if a.toast != "" || a.retrying > 0 || a.nowPlaying != "" {
 		return true
 	}
 	switch a.scr {
@@ -233,6 +264,12 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return a, tea.Batch(a.onKey(msg), a.kick())
 	case connectedMsg:
 		return a, tea.Batch(a.onConnected(msg), a.kick())
+	case audioNoticeMsg:
+		a.setNow(time.Now())
+		if !a.cfg.Muted && a.scr == scrGame {
+			a.nowPlaying, a.npUntil = string(msg), a.now.Add(4*time.Second)
+		}
+		return a, tea.Batch(a.listenAudio(), a.kick())
 	case frameMsg:
 		if msg.s != a.sess {
 			return a, nil
@@ -282,6 +319,9 @@ func (a *App) setNow(t time.Time) {
 func (a *App) onTick() tea.Cmd {
 	if a.toast != "" && a.now.After(a.toastUntil) {
 		a.toast = ""
+	}
+	if a.nowPlaying != "" && a.now.After(a.npUntil) {
+		a.nowPlaying = ""
 	}
 	switch a.scr {
 	case scrBoot:
@@ -585,9 +625,13 @@ func (a *App) onFrame(env protocol.Envelope) tea.Cmd {
 		a.goTo(scrGame)
 		a.sound.Music(audio.SongGame)
 	case protocol.TChat, protocol.TEmote:
-		if a.scr == scrGame && a.game != nil {
+		switch {
+		case a.scr == scrGame && a.game != nil && isBotChat(env):
+			// Bot taunts react to events: play them after those events.
+			return a.game.onFrame(a, env)
+		case a.scr == scrGame && a.game != nil:
 			a.game.onChat(a, env)
-		} else {
+		default:
 			a.lobby.onChat(a, env)
 		}
 	case protocol.TError:
@@ -630,6 +674,9 @@ func (a *App) View() tea.View {
 		body = a.postProcess(body)
 		if a.toast != "" || a.retrying > 0 {
 			body = a.overlayToast(body)
+		}
+		if a.nowPlaying != "" && a.scr == scrGame {
+			body = a.overlayNowPlaying(body)
 		}
 		if a.help {
 			body = overlay(body, a.helpView(), a.w, a.h)
@@ -718,9 +765,11 @@ func (a *App) helpView() string {
 		{"b", "block (then pick the card if there's a choice)"},
 		{"p", "pass"},
 		{"1 / 2", "pick a card when losing influence or proving a claim"},
-		{"enter", "chat    t  taunt menu"},
-		{"m", "mute    s  CRT scanlines"},
-		{"esc", "cancel a choice    q  leave"},
+		{"tab", "inspect a player: claims, history, face-up cards"},
+		{"space", "skip the current beat (solo)    P  pause (solo)"},
+		{"enter", "chat    t  taunt menu    pgup/pgdn  scroll the log"},
+		{"m", "mute    n  next track    s  CRT scanlines"},
+		{"esc", "cancel a choice, or open settings    q  leave"},
 		{"?", "this help"},
 	}
 	var b strings.Builder
@@ -732,6 +781,10 @@ func (a *App) helpView() string {
 	b.WriteString(a.t.Muted.Render(wrap("Everyone has two hidden cards (influence) and coins. On your turn take one action. "+
 		"Any character action may be a bluff: anyone can challenge. A failed challenge costs the challenger a card; a caught bluff costs the bluffer a card. "+
 		"7 coins buys a Coup; at 10 you must Coup. Lose both cards and you're out. Last runner standing wins.", 70)))
+	b.WriteString("\n\n" + a.t.Title.Render("READING THE TABLE") + "\n")
+	b.WriteString(a.t.Muted.Render(wrap("The bottom bar says what's happening, what you can do and what it risks. "+
+		"The tracker in the middle counts each character: REVEALED is face up, UNSEEN could be in a rival's hand or the deck. "+
+		"UNSEEN 0 means any claim of it is a bluff. Badges on a rival's panel show what they've claimed this game.", 70)))
 	b.WriteString("\n\n" + a.t.Faint.Render("any key to close"))
 	return lipgloss.NewStyle().Border(a.t.RoundBorder).BorderForeground(theme.Cyan).Padding(1, 2).Background(theme.Panel).Render(b.String())
 }
@@ -743,6 +796,13 @@ func (a *App) confirmView() string {
 	}
 	return lipgloss.NewStyle().Border(a.t.RoundBorder).BorderForeground(theme.Red).Padding(1, 3).Background(theme.Panel).Render(
 		a.t.Warn.Render(q) + "\n\n" + a.t.Text.Render("y / enter: yes    any other key: no"))
+}
+
+// overlayNowPlaying shows the new track's title in the top-right corner.
+func (a *App) overlayNowPlaying(body string) string {
+	msg := a.t.G("♪", "~") + " NOW PLAYING // " + a.nowPlaying
+	box := lipgloss.NewStyle().Foreground(theme.Bg).Background(theme.Magenta).Bold(true).Padding(0, 1).Render(a.t.A(msg))
+	return overlayAt(body, box, a.w-lipgloss.Width(box)-1, 1)
 }
 
 func (a *App) overlayToast(body string) string {
@@ -774,7 +834,7 @@ func fit(s string, w, h int) string {
 		lines = lines[:h]
 	}
 	for i, l := range lines {
-		lw := lipgloss.Width(l)
+		lw := cellWidth(l)
 		switch {
 		case lw > w:
 			lines[i] = ansi.Cut(l, 0, w)

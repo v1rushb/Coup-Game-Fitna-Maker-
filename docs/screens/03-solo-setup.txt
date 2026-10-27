@@ -13,7 +13,8 @@
               │   ▶ Bots            ◀ 3 ▶                                            │
               │     Difficulty      ◀ FIXER (normal) ▶                               │
               │     Magistrate      ◀ OFF ▶                                          │
-              │     Reaction window ◀ 8s ▶                                           │
+              │     Speed           ◀ RELAXED ▶                                      │
+              │     Reaction window ◀ AUTO (12s) ▶                                   │
               │                                                                      │
               │   1 to 5 opponents. Magistrate is recommended for 5+ players.        │
               │                                                                      │

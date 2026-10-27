@@ -1,40 +1,40 @@
- NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 13                                              ♪✖ no audio  ? help  q leave
-        ╭────────────────────────────────╮╭────────────────────────────────╮        ╭──────────────────────────────────╮
-        │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │        │ NETLOG                           │
-        │ ¢4                          ●● ││ ¢4                          ●● │        │ ── TURN 5 · NULLBYTE ──          │
-        │ no cards exposed               ││ no cards exposed               │        │ > [NULLBYTE] SKIMS A CREDIT //   │
-        │                                ││                                │        │   INCOME +1¢                     │
-        ╰────────────────────────────────╯╰────────────────────────────────╯        │ ── TURN 6 · VEX ──               │
-                        ╔══════════════════════════════════╗                        │ > [VEX] SKIMS A CREDIT //        │
-                        ║ TREASURY 28¢ · DECK 5 · TURN 13  ║                        │   INCOME +1¢                     │
-                        ║ ──────────────────────────────── ║                        │ ── TURN 7 · YOU ──               │
-                        ║ > MOTH is choosing a move        ║                        │ > [YOU] SKIMS A CREDIT //        │
-                        ║                                  ║                        │   INCOME +1¢                     │
-╭──────────────────────╮║ waiting on: MOTH                 ║╭──────────────────────╮│ ── TURN 8 · MOTH ──              │
-│ ⠋ MOTH        NORMAL │║                                  ║│   VEX           HARD ││ > [MOTH] SKIMS A CREDIT //       │
-│ ¢4                ●●╔══════════════════════════════════════════════════════════════════════════╗                     │
-│ no cards exposed    ║                                                                          ║GHOSTWIRE ──         │
-│ thinking...         ║       CONNECTION TERMINATED                                              ║] SKIMS A CREDIT     │
-│                     ║                                                                          ║+1¢                  │
-│                     ║    winner: GHOSTWIRE   turns: 13                                         ║ NULLBYTE ──         │
-╰─────────────────────║    your bluffs: 3 (1 caught)   challenges: 2 (2 won)                     ║ SKIMS A CREDIT //   │
-                      ║    blocks: 1   coins earned: 17   coups: 2                               ║                     │
-                      ║    replay saved: ~/.config/neoncoup/replays/20870101-000000-7K2Q.json    ║ VEX ──              │
-                      ║                                                                          ║S A CREDIT //        │
-                      ║    [r] rematch  [v] replay  [enter] lobby  [q] leave                     ║                     │
-                      ║                                                                          ║ YOU ──              │
-                      ╚══════════════════════════════════════════════════════════════════════════╝S A CREDIT //        │
-╔════════════════╗╔════════════════╗  RUNNER  seat 2                                │   INCOME +1¢                     │
-║ DUKE          ◆║║ CAPTAIN       ▲║  ¢ 5                                           │ ── TURN 13 · MOTH ──             │
-║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                                  ╰──────────────────────────────────╯
-║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║                                                ╭──────────────────────────────────╮
-║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║  you hold                                      │                                  │
-║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  DUKE + CAPTAIN                                │ enter: chat · t: taunt           │
-║   ▀█▄═══▄▄█▀ ║ ║║  ▄▓▓▓█▓▓▓▓▓▓▓█▄║                                                │                                  │
-║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  █▓▓▓█▓▓┃┃▓▓▓██║                                                │                                  │
-║────────────────║║────────────────║                                                │                                  │
-║ TAX +3¢        ║║ STEAL 2¢       ║                                                │                                  │
-║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                                │                                  │
-╚════════════════╝╚════════════════╝                                                ╰──────────────────────────────────╯
- waiting on MOTH ⠋
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 13  ▶ MOTH                                      ♪✖ no audio  ? help  q leave
+         ╭────────────────────────────────╮╭────────────────────────────────╮          ╭───────────────────────────────╮
+         │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │          │ NETLOG                        │
+         │ ¢4        ╔════════════════════════════════════════════════════════════════════════════╗IMS A CREDIT //     │
+         │ no claims ║                                                                            ║1¢                  │
+         │           ║       CONNECTION TERMINATED                                                ║· MOTH ──           │
+         ╰───────────║                                                                            ║KIMS A CREDIT //    │
+                  ╔══║    winner: GHOSTWIRE   turns: 13                                           ║1¢                  │
+                  ║ T║    your challenges: 2 (2 won)   blocks: 1   coins earned: 17   coups: 2    ║· GHOSTWIRE ──      │
+                  ║ >║                                                                            ║RE] SKIMS A         │
+                  ║  ║    THE CARDS // every hand, face up                                        ║/ INCOME +1¢        │
+                  ║ C║    VEX          DUKE        CONTESSA    bluffs: 2 got away, 0 caught       ║ · NULLBYTE ──      │
+╔════════════════╗║  ║    YOU          CONTESSA    CAPTAIN     played it straight                 ║E] SKIMS A CREDIT   │
+║ ▶ MOTH         ║║ R║    MOTH         AMBASSADOR  CAPTAIN     played it straight                 ║E +1¢               │
+║ ¢4          ●● ║║ U║    GHOSTWIRE    CAPTAIN     CONTESSA    played it straight                 ║ · VEX ──           │
+║ no claims yet  ║║  ║    NULLBYTE     DUKE        ASSASSIN    played it straight                 ║IMS A CREDIT //     │
+║ thinking...    ║║  ║                                                                            ║1¢                  │
+║                ║║ R║    KEY MOMENTS                                                             ║ · YOU ──           │
+║                ║║ U║    T6  VEX assassinated your CAPTAIN                                       ║ // YOU income ·    │
+╚════════════════╝║  ║    T7  MOTH called your DUKE: it was real                                  ║ome · GHOSTWIRE     │
+                  ║  ║    T8  NULLBYTE called MOTH's DUKE: it was real                            ║ NULLBYTE income ·  │
+                  ║  ║    T9  VEX called MOTH's AMBASSADOR: it was real                           ║me                  │
+                  ║  ║    T12 YOU couped MOTH                                                     ║IMS A CREDIT //     │
+                  ║  ║    T12 MOTH flatlined                                                      ║1¢                  │
+                  ║  ║    T22 NULLBYTE couped GHOSTWIRE                                           ║ · MOTH ──          │
+                  ╚══║    T23 GHOSTWIRE called VEX's ASSASSIN: it was real                        ║                    │
+╔════════════════╗╔══║    T23 GHOSTWIRE flatlined                                                 ║                    │
+║ DUKE          ◆║║ C║    T34 NULLBYTE couped VEX                                                 ║                    │
+║     ▄▄▄▄▄▄     ║║══║    T34 VEX flatlined                                                       ║────────────────────╯
+║   ▄█▀▀▀▀▀▀█▄   ║║  ║    T39 YOU couped NULLBYTE                                                 ║────────────────────╮
+║   █  ▄▄ (◉)█═╗ ║║  ║    T39 NULLBYTE flatlined                                                  ║                    │
+║   █   ▄▄   █ ║ ║║  ║    T39 YOU seized the city                                                 ║t · t: taunt        │
+║   ▀█▄═══▄▄█▀ ║ ║║  ║    replay saved: ~/.config/neoncoup/replays/20870101-000000-7K2Q.json      ║                    │
+║  ▄▓▓▓█[¢]█▓▓▓▄ ║║  ║                                                                            ║                    │
+║────────────────║║──║    [r] rematch  [v] replay  [enter] lobby  [q] leave                       ║                    │
+║ TAX +3¢        ║║ S║                                                                            ║                    │
+║ BLOCKS FOR.AID ║║ B╚════════════════════════════════════════════════════════════════════════════╝                    │
+╚════════════════╝╚════════════════╝                                                   ╰───────────────────────────────╯
+ MOTH is choosing a move ⠋
  [t]TAUNT  [?]HELP

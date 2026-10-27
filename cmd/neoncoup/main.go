@@ -222,7 +222,8 @@ func cmdSolo(args []string) error {
 	bots := fs.Int("bots", 0, "number of bot opponents (1-5)")
 	level := fs.String("difficulty", "", "bot difficulty: easy, normal, hard")
 	magistrate := fs.Bool("magistrate", false, "play with the Magistrate variant")
-	window := fs.Int("window", 0, "reaction window in seconds")
+	window := fs.Int("window", 0, "reaction window in seconds (default: by speed)")
+	speed := fs.String("speed", "", "presentation speed: relaxed, normal, fast")
 	if _, err := parse(fs, args); err != nil {
 		return err
 	}
@@ -230,7 +231,13 @@ func cmdSolo(args []string) error {
 	if err != nil {
 		return err
 	}
-	o := client.SoloOptions{Bots: e.cfg.Bots, Level: e.cfg.BotLevel, Magistrate: e.cfg.Magistrate || *magistrate, WindowMS: e.cfg.WindowMS}
+	o := client.SoloOptions{Bots: e.cfg.Bots, Level: e.cfg.BotLevel, Magistrate: e.cfg.Magistrate || *magistrate, WindowMS: e.cfg.WindowMS, Speed: e.cfg.Speed}
+	if *speed != "" {
+		if protocol.ParseSpeed(*speed) != *speed {
+			return fmt.Errorf("unknown speed %q (relaxed, normal or fast)", *speed)
+		}
+		o.Speed = *speed
+	}
 	if *bots != 0 {
 		if *bots < 1 || *bots > 5 {
 			return errors.New("--bots must be between 1 and 5")

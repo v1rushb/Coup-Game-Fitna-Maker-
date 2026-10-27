@@ -177,6 +177,7 @@ type CardOpts struct {
 	Width    int    // squash for flip animations (0 = full width)
 	Shimmer  int    // animation phase for shimmering details
 	Hint     string // replaces the second ability line (e.g. "✓ PROVES")
+	Stamp    bool   // compact only: stamped NO COPIES LEFT (card tracker)
 }
 
 // Renderer draws art with a theme and caches the results.
@@ -349,6 +350,9 @@ func (r *Renderer) drawCard(c engine.Character, o CardOpts) string {
 	if o.Selected {
 		border = theme.White
 	}
+	if o.Stamp {
+		border = theme.Red
+	}
 	if o.Lost {
 		border = theme.Faint
 	}
@@ -382,6 +386,10 @@ func (r *Renderer) drawCard(c engine.Character, o CardOpts) string {
 		}
 		if o.Lost {
 			ab0, ab1 = r.T.G("✖ LOST", "x LOST"), ""
+		}
+		if o.Stamp {
+			ab0, ab1 = "▓NO COPIES", "▓▓ LEFT ▓▓"
+			textSt = lipgloss.NewStyle().Foreground(theme.Red).Bold(true)
 		}
 		lines = append(lines, textSt.Render(padRight(truncate(r.T.A(ab0), w), w)), textSt.Render(padRight(truncate(r.T.A(ab1), w), w)))
 		return r.squash(strings.Join(r.frame(lines, w, o.Label, o.Selected, border), "\n"), CompactW, o.Width)
@@ -439,6 +447,10 @@ func (r *Renderer) drawBack(o CardOpts) string {
 	}
 	return r.squash(strings.Join(r.frame(lines, artW, o.Label, true, border), "\n"), CardW, o.Width)
 }
+
+// Squash narrows a rendered card (full cells wide) to w columns, as the
+// middle of a flip animation.
+func (r *Renderer) Squash(card string, full, w int) string { return r.squash(card, full, w) }
 
 // squash narrows a rendered card for flip animations by keeping a centered
 // band of columns; the rest becomes blank so the layout keeps its size.

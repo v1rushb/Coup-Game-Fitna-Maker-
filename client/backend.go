@@ -14,8 +14,10 @@ type SoloOptions struct {
 	Bots       int
 	Level      string
 	Magistrate bool
-	WindowMS   int
-	// Instant skips the bots' think delay (used by the tutorial and tests).
+	WindowMS   int // 0 = auto
+	Speed      string
+	// Instant turns presentation off and skips most of the bots' think delay
+	// (tests).
 	Instant bool
 }
 
@@ -68,9 +70,12 @@ func soloServer(o SoloOptions) (*server.Server, *Connection, error) {
 	st.BotLevel = o.Level
 	st.Magistrate = o.Magistrate
 	st.TurnMS = 0 // nobody is waiting on you in solo
-	if o.WindowMS > 0 {
-		st.WindowMS = o.WindowMS
+	st.WindowMS = o.WindowMS
+	st.Speed = protocol.ParseSpeed(o.Speed)
+	if o.Instant {
+		st.Speed = protocol.SpeedInstant
 	}
+	st = st.Clamp()
 	room, err := srv.CreateRoom("", st)
 	if err != nil {
 		srv.Close()

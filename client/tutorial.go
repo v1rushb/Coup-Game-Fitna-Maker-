@@ -63,15 +63,20 @@ type tutorialHost struct {
 	bots  map[int]bot.Bot
 	start time.Time
 	steps []protocol.Step
+	speed string
+	// presentEnd paces the scripted opponents like a real host: they move
+	// only once the player has seen everything in front of them.
+	presentEnd time.Time
+	paused     bool
 }
 
-func startTutorialHost() (transport.Conn, error) {
+func startTutorialHost(speed string) (transport.Conn, error) {
 	g, err := engine.New(engine.Config{Players: 3, Seed: 2087, First: 0, Rig: tutorialRig()})
 	if err != nil {
 		return nil, err
 	}
 	a, b := transport.Pipe()
-	h := &tutorialHost{conn: b, game: g, bots: map[int]bot.Bot{}}
+	h := &tutorialHost{conn: b, game: g, bots: map[int]bot.Bot{}, speed: protocol.ParseSpeed(speed)}
 	for _, s := range []int{1, 2} {
 		h.bots[s] = bot.New(bot.Easy, s, uint64(s), bot.Personality{Handle: tutorialSeats[s], Bluff: 0.5, Suspicion: 0.6, Aggression: 1})
 	}
@@ -97,13 +102,19 @@ func (h *tutorialHost) seats() []protocol.Seat {
 }
 
 func (h *tutorialHost) broadcast(evs []engine.Event) {
+	now := time.Now()
+	if h.presentEnd.Before(now) {
+		h.presentEnd = now
+	}
+	h.presentEnd = h.presentEnd.Add(time.Duration(protocol.PresentMS(evs, h.speed)) * time.Millisecond)
 	h.send(protocol.TEvents, protocol.Events{Events: engine.RedactAll(evs, 0)})
 	for s, b := range h.bots {
 		for _, e := range evs {
 			b.Observe(e.Redact(s))
 		}
 	}
-	h.send(protocol.TState, protocol.State{View: h.game.View(0), Seats: h.seats()})
+	h.send(protocol.TState, protocol.State{View: h.game.View(0), Seats: h.seats(), Speed: h.speed,
+		OpensInMS: max(0, time.Until(h.presentEnd).Milliseconds())})
 }
 
 func (h *tutorialHost) run() {
@@ -126,8 +137,9 @@ func (h *tutorialHost) run() {
 	defer botTimer.Stop()
 	armBots := func() {
 		aw := h.game.Awaiting()
-		if len(aw) > 0 && aw[0] != 0 || (len(aw) > 1) {
-			botTimer.Reset(900 * time.Millisecond)
+		if !h.paused && (len(aw) > 0 && aw[0] != 0 || (len(aw) > 1)) {
+			think := time.Duration(900*max(0.3, protocol.SpeedFactor(h.speed))) * time.Millisecond
+			botTimer.Reset(max(0, time.Until(h.presentEnd)) + think)
 		}
 	}
 	for {
@@ -145,7 +157,9 @@ func (h *tutorialHost) run() {
 				}
 				started = true
 				h.start = time.Now()
-				h.send(protocol.TGameStart, protocol.GameStart{Game: 1, Seats: h.seats(), YouSeat: 0, Settings: protocol.DefaultSettings()})
+				st := protocol.DefaultSettings()
+				st.Speed = h.speed
+				h.send(protocol.TGameStart, protocol.GameStart{Game: 1, Seats: h.seats(), YouSeat: 0, Settings: st})
 				h.broadcast(h.game.StartEvents())
 				armBots()
 			case protocol.TIntent:
@@ -161,6 +175,21 @@ func (h *tutorialHost) run() {
 				h.steps = append(h.steps, protocol.Step{Seat: 0, Intent: m.Intent, AtMS: time.Since(h.start).Milliseconds()})
 				h.after(evs)
 				armBots()
+			case protocol.TControl:
+				var c protocol.Control
+				if env.Into(&c) != nil {
+					continue
+				}
+				if c.SkipMS > 0 {
+					h.presentEnd = h.presentEnd.Add(-time.Duration(c.SkipMS) * time.Millisecond)
+				}
+				if c.Pause != nil {
+					h.paused = *c.Pause
+					if h.paused {
+						botTimer.Stop()
+					}
+				}
+				armBots()
 			case protocol.TChat:
 				var c protocol.Chat
 				if env.Into(&c) == nil {
@@ -168,7 +197,7 @@ func (h *tutorialHost) run() {
 				}
 			}
 		case <-botTimer.C:
-			if h.game.Over() {
+			if h.game.Over() || h.paused {
 				continue
 			}
 			for _, s := range h.game.Awaiting() {
@@ -220,7 +249,7 @@ func (a *App) startTutorial() tea.Cmd {
 	a.connText = "loading the training sim..."
 	a.goTo(scrConnecting)
 	return func() tea.Msg {
-		conn, err := startTutorialHost()
+		conn, err := startTutorialHost(a.cfg.Speed)
 		if err != nil {
 			return connectedMsg{err: err}
 		}

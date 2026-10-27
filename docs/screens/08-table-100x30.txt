@@ -1,20 +1,20 @@
- NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 9                           ♪✖ no audio  ? help  q leave
- ╭────────────────────────────────╮╭────────────────────────────────╮ ╭────────────────────────────╮
- │ ▶ GHOSTWIRE               HARD ││ ⠙ NULLBYTE                EASY │ │ NETLOG                     │
- │ ¢1                          ●● ││ ¢2                          ●○ │ │ ── TURN 7 · YOU ──         │
- │ no cards exposed               ││ ✖ASSASN                        │ │ > [YOU] FLASHES A          │
- │ claims ASSASSIN                ││ thinking...                    │ │   CAPTAIN BADGE AT [MOTH]  │
- ╰────────────────────────────────╯╰────────────────────────────────╯ │   // STEAL 2¢              │
-╭────────────────╮╔════════════════════════════════╗╭────────────────╮│ [YOU] LIFTS 2¢ FROM        │
-│ ⠙ MOTH         │║ TREASURY 35¢ · DECK 5 · TURN 9 ║│ ⠙ VEX          ││   [MOTH]                   │
-│ ¢3          ●● │║ > GHOSTWIRE → ASSASSINATE YOU  ║│ ¢2          ●○ ││ ── TURN 8 · MOTH ──        │
-│ none exposed   │║ (claims ASSASSIN)              ║│ ✖CONTSA        ││ > [MOTH] BROADCASTS DUKE   │
-│ thinking...    │║ CHALLENGE WINDOW OPEN          ║│ thinking...    ││   SIGNAL // TAX +3¢        │
-│                │║ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░  5.2s   ║│                ││ +3¢ → [MOTH]               │
-│                │║ waiting on: VEX, YOU, MOTH,    ║│                ││ ── TURN 9 · GHOSTWIRE ──   │
-╰────────────────╯║ NULLBYTE                       ║╰────────────────╯│ > [GHOSTWIRE] RUNS         │
-                  ╚════════════════════════════════╝                  │   ASSASSIN PROTOCOL ON     │
-╔════════════════╗╔════════════════╗  RUNNER  seat 2                  │   [YOU] // -3¢             │
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 9  ▶ GHOSTWIRE              ♪✖ no audio  ? help  q leave
+ ╔════════════════════════════════╗╭────────────────────────────────╮ ╭────────────────────────────╮
+ ║ ▶ GHOSTWIRE               HARD ║│ ⠙ NULLBYTE                EASY │ │ NETLOG                     │
+ ║ ¢1                          ●● ║│ ¢2 ✖ASSN                    ●○ │ │ ▸ [YOU] FLASHES A          │
+ ║ ASSN×1 CAPT×1                  ║│ DUKE×1                         │ │   CAPTAIN BADGE AT [MOTH]  │
+ ║ claims ASSASSIN                ║│ thinking...                    │ │   // STEAL 2¢              │
+ ╚════════════════════════════════╝╰────────────────────────────────╯ │ ¢ [YOU] LIFTS 2¢ FROM      │
+╭────────────────╮╔════════════════════════════════╗╭────────────────╮│   [MOTH]                   │
+│ ⠙ MOTH         │║ TREASURY 35¢ · DECK 5          ║│ ⠙ VEX          ││ ── TURN 8 · MOTH ──        │
+│ ¢3          ●● │║ > GHOSTWIRE → ASSASSINATE YOU  ║│ ¢2 ✖CONT    ●○ ││ ▸ [MOTH] BROADCASTS DUKE   │
+│ DUKE×1         │║ (claims ASSASSIN)              ║│ AMBS×1         ││   SIGNAL // TAX +3¢        │
+│ thinking...    │║ CHALLENGE WINDOW OPEN          ║│ thinking...    ││ ¢ +3¢ → [MOTH]             │
+│                │║ DUKE R0/3 U2  ASSN R1/3 U2     ║│                ││ ── TURN 9 · GHOSTWIRE ──   │
+│                │║ CAPT R0/3 U2  AMBS R0/3 U3     ║│                ││ ▸ [GHOSTWIRE] RUNS         │
+╰────────────────╯║ CONT R1/3 U2                   ║╰────────────────╯│   ASSASSIN PROTOCOL ON     │
+                  ╚════════════════════════════════╝                  │   [YOU] // -3¢             │
+╔════════════════╗╔════════════════╗  RUNNER  seat 2                  │                            │
 ║ DUKE          ◆║║ CAPTAIN       ▲║  ¢ 7                             │                            │
 ║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                    ╰────────────────────────────╯
 ║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║  coup armed (7)                  ╭────────────────────────────╮
@@ -26,5 +26,5 @@
 ║ TAX +3¢        ║║ STEAL 2¢       ║                                  │                            │
 ║ BLOCKS FOR.AID ║║ BLOCKS STEAL   ║                                  │                            │
 ╚════════════════╝╚════════════════╝                                  ╰────────────────────────────╯
- GHOSTWIRE claims ASSASSIN for ASSASSINATE. call the bluff?
+ GHOSTWIRE claims Assassin to assassinate you.  [C] Challenge  [P] Pass  ██████░░░ 6s
  [c]CHALLENGE  [p]PASS  [t]TAUNT  [?]HELP

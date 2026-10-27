@@ -1,0 +1,45 @@
+ NEON//COUP   ROOM NEON-7K2Q  GAME 3  TURN 2   ▶ YOUR TURN                                                                         ♪✖ no audio  ? help  q leave
+                        ╭────────────────────────────────╮╭────────────────────────────────╮                        ╭──────────────────────────────────────────╮
+                        │   GHOSTWIRE               HARD ││   NULLBYTE                EASY │                        │ NETLOG                                   │
+                        │ ¢2                          ●● ││ ¢2                          ●● │                        │ // GAME 3 // 5 RUNNERS // JACKED IN      │
+                        │ no claims yet                  ││ no claims yet                  │                        │ ── TURN 1 · VEX ──                       │
+                        │                                ││                                │                        │ ▸ [VEX] SKIMS A CREDIT // INCOME +1¢     │
+                        ╰────────────────────────────────╯╰────────────────────────────────╯                        │ ── TURN 2 · YOU ──                       │
+                   ╔════════════════════════════════════════════════════════════════════════════╗                   │ LAST ROUND // VEX income                 │
+                   ║ > YOUR TURN · choose an action below                                       ║                   │                                          │
+                   ║                                                                            ║                   │                                          │
+                   ║ COURT TRACKER // revealed: face up · unseen: anywhere but your hand        ║                   │                                          │
+                   ║ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   ╭────╮  ║                   │                                          │
+                   ║ │ DUKE    ◆│ │ ASSASSIN╳│ │ CAPTAIN ▲│ │ AMBASSAD◎│ │ CONTESSA✧│  ╭│▒░▒░│  ║                   │                                          │
+                   ║ │ ▄█▀▀(◉)═╗│ │  ▄█▓▓█▄ ╱│ │══▄ █▀▀▀▀█│ │  ░▒▓▀▀▓▒░│ │   ▐◆  ◆▌ │  ││░▒░▒│  ║                   │                                          │
+                   ║ │ ▓▓█[¢]█▓▓│ │  █ ════▐▌│ │ ▐█▌▐▓▓▓▓▌│ │  ▐═[▓▓]═▌│ │ ▐░▒▓░▒▓░▌│  ╰╰────╯  ║                   │                                          │
+╭─────────────────╮║ │TAX +3¢   │ │KILL 3¢   │ │STEAL 2¢  │ │SWAP 2    │ │BLK KILL  │ DECK   5  ║╭─────────────────╮│                                          │
+│   MOTH          │║ │BLK AID   │ │-1 INFL   │ │BLK STEAL │ │BLK STEAL │ │          │           ║│   VEX      HARD ││                                          │
+│ ¢2           ●● │║ └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘ TREASURY  ║│ ¢3           ●● ││                                          │
+│ no claims yet   │║ REVEALED 0/3 REVEALED 0/3 REVEALED 0/3 REVEALED 0/3 REVEALED 0/3      39¢  ║│ no claims yet   ││                                          │
+│                 │║ UNSEEN 2     UNSEEN 3     UNSEEN 2     UNSEEN 3     UNSEEN 3               ║│                 ││                                          │
+│                 │║                                                                            ║│                 ││                                          │
+│                 │║                                                                            ║│                 ││                                          │
+╰─────────────────╯║                                                                            ║╰─────────────────╯│                                          │
+                   ║                                                                            ║                   │                                          │
+                   ║                                                                            ║                   │                                          │
+                   ║                                                                            ║                   │                                          │
+                   ║                                                                            ║                   │                                          │
+                   ║                                                                            ║                   │                                          │
+                   ║                                                                            ║                   │                                          │
+                   ║                                                                            ║                   │                                          │
+                   ╚════════════════════════════════════════════════════════════════════════════╝                   │                                          │
+╔════════════════╗╔════════════════╗  RUNNER  seat 2                                                                │                                          │
+║ DUKE          ◆║║ CAPTAIN       ▲║  ¢ 2                                                                           │                                          │
+║     ▄▄▄▄▄▄     ║║═══▄▄   ▄▄▄▄▄▄  ║  influence ●●                                                                  ╰──────────────────────────────────────────╯
+║   ▄█▀▀▀▀▀▀█▄   ║║  ▐██▌ █▀▀▀▀▀▀█ ║                                                                                ╭──────────────────────────────────────────╮
+║   █  ▄▄ (◉)█═╗ ║║   ▀█▄▐▓▓▓▓▓▓▓▌ ║  you hold                                                                      │                                          │
+║   █   ▄▄   █ ║ ║║     ▀█▄▄▄▄▄▄▄█ ║  DUKE + CAPTAIN                                                                │ enter: chat · t: taunt                   │
+║╭─────────────────────────────────────────────────────────╮                                                        │                                          │
+║│ HINT Your turn: pick an action with 1-8. Green ones you │                                                        │                                          │
+║│ can back up; magenta~ ones would be bluffs. Anyone      │                                                        │                                          │
+║│ may challenge a claim.                                  │                                                        │                                          │
+║│ (hints: on/off in settings, esc)                        │                                                        │                                          │
+╚╰─────────────────────────────────────────────────────────╯                                                        ╰──────────────────────────────────────────╯
+ YOUR TURN with 2¢. Green: you hold it. Magenta~: a bluff. Coup needs 7¢ · Assassinate needs 3¢
+ [1]INCOME  [2]AID  [3]COUP  [4]TAX  [5]ASSASSIN  [6]STEAL  [7]SWAP~  [t]TAUNT  [?]HELP

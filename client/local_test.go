@@ -20,6 +20,7 @@ import (
 
 func hostSettings() protocol.Settings {
 	st := protocol.DefaultSettings()
+	st.Speed = protocol.SpeedInstant
 	st.MaxPlayers = 2
 	st.FillBots = false
 	st.TurnMS = 0

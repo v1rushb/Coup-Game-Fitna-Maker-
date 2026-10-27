@@ -106,6 +106,7 @@ func newTestServer(t *testing.T) (*Server, *Room) {
 	s := New(Options{Seed: 42})
 	t.Cleanup(s.Close)
 	settings := protocol.DefaultSettings()
+	settings.Speed = protocol.SpeedInstant
 	settings.TurnMS = 0
 	r, err := s.CreateRoom("NEON-TEST", settings)
 	if err != nil {
@@ -353,6 +354,7 @@ func TestSpectatorSeesNoHands(t *testing.T) {
 	s, r := newTestServer(t)
 	r.Do(func(r *Room) { r.settings.MaxPlayers = 3 })
 	host := dial(t, s, protocol.Hello{Name: "host", Room: "NEON-TEST"})
+	host.expect(protocol.TWelcome) // join first, so this member is the host
 	spec := dial(t, s, protocol.Hello{Name: "eye", Room: "NEON-TEST", Spectate: true})
 	spec.expect(protocol.TWelcome)
 	host.send(protocol.TStart, nil)
@@ -372,6 +374,7 @@ func TestDisconnectHoldsSeatThenBotTakesOverAndRejoinReclaims(t *testing.T) {
 	s := New(Options{Seed: 7, ThinkMin: 150 * time.Millisecond, ThinkMax: 200 * time.Millisecond})
 	t.Cleanup(s.Close)
 	settings := protocol.DefaultSettings()
+	settings.Speed = protocol.SpeedInstant
 	settings.TurnMS = 0
 	r, _ := s.CreateRoom("NEON-TEST", settings)
 	r.Do(func(r *Room) {

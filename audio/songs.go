@@ -76,9 +76,12 @@ var menuSong = &SongData{
 }
 
 var gameSong = &SongData{
-	Name: "game",
-	BPM:  132,
-	Loop: true,
+	Name:  "game",
+	Title: "NEON PROTOCOL",
+	BPM:   132,
+	// The theme branches forever on its own; in the playlist it takes a
+	// turn of about two and a half minutes.
+	MaxPatterns: 40,
 	Patterns: map[string]*Pattern{
 		// A: the main hook.
 		"A1": {
@@ -173,10 +176,13 @@ var defeatSong = &SongData{
 }
 
 var songs = map[Song]*SongData{
-	SongMenu:    menuSong,
-	SongGame:    gameSong,
-	SongVictory: victorySong,
-	SongDefeat:  defeatSong,
+	SongMenu:      menuSong,
+	SongVictory:   victorySong,
+	SongDefeat:    defeatSong,
+	SongTheme:     gameSong,
+	SongRain:      rainSong,
+	SongOverclock: overclockSong,
+	SongRemix:     remixSong,
 }
 
 func init() {

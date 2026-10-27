@@ -88,6 +88,11 @@ everyone still pending, or the engine's `DefaultIntent` for a decision.
 
 ## Protocol (v1)
 
+> Protocol v2 (the UX update) adds the room speed, presentation timing in `state`
+> (`opens_in_ms`, `speed`, `paused`), the solo `control` message and host-side deferral of
+> early intents. See [UX_PLAN.md](UX_PLAN.md#protocol-v2). The tables below describe v1, which
+> v2 extends.
+
 Every frame is a JSON envelope: `{"t": "<type>", "d": {...}}`. The first client frame must be
 `hello`. A `proto` mismatch is answered with `reject` (code `version`) and the connection closes.
 

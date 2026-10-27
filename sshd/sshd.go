@@ -206,10 +206,12 @@ func (b *hubBackend) Solo(o client.SoloOptions) (*client.Connection, error) {
 	st.BotLevel = o.Level
 	st.Magistrate = o.Magistrate
 	st.TurnMS = 0
-	if o.WindowMS > 0 {
-		st.WindowMS = o.WindowMS
+	st.WindowMS = o.WindowMS
+	st.Speed = protocol.ParseSpeed(o.Speed)
+	if o.Instant || b.s.opts.Instant {
+		st.Speed = protocol.SpeedInstant
 	}
-	room, err := b.s.hub.CreateRoom("", st)
+	room, err := b.s.hub.CreateRoom("", st.Clamp())
 	if err != nil {
 		return nil, err
 	}

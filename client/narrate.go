@@ -19,12 +19,26 @@ const (
 	logTurn
 	logChat
 	logSystem
+	logAction
+	logChallenge
+	logBlock
+	logSummary
 )
 
 type logLine struct {
 	text string
 	kind logKind
 	turn int
+	// icon marks the event type at the start of the line.
+	icon string
+}
+
+// logIcons mark each kind of event in the netlog.
+var logIcons = map[engine.EventKind]string{
+	engine.EvActionDeclared: "▸", engine.EvChallenge: "!", engine.EvClaimProven: "✓", engine.EvClaimFailed: "✖",
+	engine.EvCardReplaced: "↻", engine.EvBlock: "■", engine.EvCoins: "¢", engine.EvInfluenceLost: "✖",
+	engine.EvEliminated: "▓", engine.EvActionBlocked: "■", engine.EvBlockFailed: "✖", engine.EvActionFailed: "✖",
+	engine.EvExchangeDraw: "⇄", engine.EvExchangeDone: "⇄", engine.EvGameOver: "»",
 }
 
 // namer resolves seat numbers to display names.
@@ -154,6 +168,19 @@ func narrate(e engine.Event, n namer, me int, coin string) (logLine, bool) {
 		l.kind = logGain
 	default:
 		return l, false
+	}
+	if icon, ok := logIcons[e.Kind]; ok {
+		// The icon replaces the old typed-in markers.
+		l.icon = icon
+		l.text = strings.TrimLeft(l.text, "> !✖»")
+	}
+	switch {
+	case e.Kind == engine.EvActionDeclared && l.kind == logInfo:
+		l.kind = logAction
+	case e.Kind == engine.EvChallenge:
+		l.kind = logChallenge
+	case e.Kind == engine.EvBlock || e.Kind == engine.EvActionBlocked:
+		l.kind = logBlock
 	}
 	return l, true
 }
